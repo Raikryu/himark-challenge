@@ -1,7 +1,7 @@
 # himark-challenge
 
 ## Group members
-- Amal Hassan - efyah8@nottingham.ac.uk
+- Amal Hassan -
 - Ben Assor -
 - Matthew Langley - psyml9@nottingham.ac.uk
 - Siddharth Advani -
