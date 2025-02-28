@@ -2,7 +2,7 @@
 
 ## Group members
 - Amal Hassan - efyah8@nottingham.ac.uk
-- Ben Assor -
+- Ben Assor - psyba5@nottingham.ac.uk
 - Matthew Langley - psyml9@nottingham.ac.uk
 - Siddharth Advani -
 
