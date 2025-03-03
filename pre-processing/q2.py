@@ -4,6 +4,8 @@ df = pd.read_csv("data/mc1-reports-data.csv")
 
 '''
 
+Use visual analytics to show uncertainty in the data.
+
 1. Compare the reliability of neighbourhood reports.
 2. Which neighbourhoods are providing reliable reports? Provide a rationale for your response.
 
@@ -24,7 +26,6 @@ df = pd.read_csv("data/mc1-reports-data.csv")
 '''
 
 # report frequency per neighbourhood
-df_locations = df.copy()
 
 regions = {
     1: "Palace Hills",
