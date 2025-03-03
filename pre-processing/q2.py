@@ -26,6 +26,7 @@ Use visual analytics to show uncertainty in the data.
 '''
 
 # report frequency per neighbourhood
+df_locations = df.copy()
 
 regions = {
     1: "Palace Hills",
@@ -49,7 +50,8 @@ regions = {
     19: "West Parton"
     }
 
-df["location"] = df["location"].map(regions)
-reports = df["location"].value_counts()
+df_locations["location"] = df_locations["location"].map(regions)
+reports = df_locations["location"].value_counts()
 reports.columns = ["region", "reports"]
-print(reports)
+
+
