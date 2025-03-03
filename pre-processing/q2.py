@@ -26,6 +26,7 @@ Use visual analytics to show uncertainty in the data.
 '''
 
 # report frequency per neighbourhood
+df_locations = df.copy()
 
 regions = {
     1: "Palace Hills",
