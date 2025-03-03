@@ -4,6 +4,8 @@ df = pd.read_csv("data/mc1-reports-data.csv")
 
 '''
 
+Use visual analytics to show uncertainty in the data. 
+
 1. Compare the reliability of neighbourhood reports. 
 2. Which neighbourhoods are providing reliable reports? Provide a rationale for your response.
 
@@ -16,10 +18,14 @@ df = pd.read_csv("data/mc1-reports-data.csv")
 - Compare shake_intens from reports to actual shakemap data (ground truth).
 	- Solution: Compute **error margin** (absolute difference between reported and actual intensity).
 - Box-plots & scatter plots
+- Number of reports
+- Break down by time frame (number of time at which there was the most reports)
+	- When is there good report coverage (lots of reports) when is there little, what does that say about the data
+	- Heat map with time series
 
 '''
 
-# report frequency per neighbourhood (in total)
+# report frequency per neighbourhood
 
 regions = {
     1: "Palace Hills",
