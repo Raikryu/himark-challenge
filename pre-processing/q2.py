@@ -4,14 +4,12 @@ df = pd.read_csv("data/mc1-reports-data.csv")
 
 '''
 
-Use visual analytics to show uncertainty in the data. 
-
-1. Compare the reliability of neighbourhood reports. 
+1. Compare the reliability of neighbourhood reports.
 2. Which neighbourhoods are providing reliable reports? Provide a rationale for your response.
 
 - Some timestamps or neighbourhoods may have **fewer reports** than expected.
 	- Solution: Compute **report frequency per neighbourhood** and flag underreported areas.
-- Power outages may cause delays in data submission. 
+- Power outages may cause delays in data submission.
 	- Time lag analysis compare when the  shaking occurred vs. when reports were received.
  - Some areas may report wildly different damage levels for the same event.
 	 - Solution: Compute Standard Deviation (SD) for each damage type **per neighbourhood**.
@@ -69,9 +67,9 @@ df['time_10min'] = df['time'].dt.floor('10min')
 
 new_col = df.pivot_table(
     index='time_10min',
-    columns='location', 
-    aggfunc='size',  
-    fill_value=0  
+    columns='location',
+    aggfunc='size',
+    fill_value=0
 )
 
 new_col.reset_index(inplace=True)
