@@ -54,4 +54,15 @@ df_locations["location"] = df_locations["location"].map(regions)
 reports = df_locations["location"].value_counts()
 reports.columns = ["region", "reports"]
 
+# underreported areas (median?)
+threshold = reports.median() * 0.5
+underreported = reports[reports < threshold].index.tolist()
 
+# standard deviation for damage
+damage = ['sewer_and_water', 'power', 'roads_and_bridges', 'medical', 'buildings', 'shake_intensity']
+damage_std = df.groupby('location')[damage].std()
+
+# break reporting into time frame (most reports per hour, can change depending on results)
+df['time'] = pd.to_datetime(df['time'])
+df['hour'] = df['time'].dt.hour
+damage_time = df['hour'].value_counts().idxmax()
