@@ -62,7 +62,21 @@ underreported = reports[reports < threshold].index.tolist()
 damage = ['sewer_and_water', 'power', 'roads_and_bridges', 'medical', 'buildings', 'shake_intensity']
 damage_std = df.groupby('location')[damage].std()
 
-# break reporting into time frame (most reports per hour, can change depending on results)
+# break reporting into time frame
 df['time'] = pd.to_datetime(df['time'])
-df['hour'] = df['time'].dt.hour
-damage_time = df['hour'].value_counts().idxmax()
+
+df['time_1hour'] = df['time'].dt.floor('10h')
+
+new_col = df.pivot_table(
+    index='time_1hour',  # Rows are the time intervals
+    columns='location',  # Columns are the regions
+    aggfunc='size',  # Count the number of reports
+    fill_value=0  # Fill missing values with 0
+)
+
+new_col.reset_index(inplace=True)
+
+reports_interval = df.groupby('time_1hour').size().reset_index(name='number_of_reports')
+reports_location = df.groupby(['time_1hour', 'location']).size().reset_index(name='number_of_reports')
+
+new_col.to_csv("heatmap_data.csv", index=False)
