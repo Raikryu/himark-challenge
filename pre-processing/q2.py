@@ -79,4 +79,4 @@ new_col.reset_index(inplace=True)
 reports_interval = df.groupby('time_30min').size().reset_index(name='number_of_reports')
 reports_location = df.groupby(['time_30min', 'location']).size().reset_index(name='number_of_reports')
 
-new_col.to_csv("heatmap_data.csv", index=False)
+damage_std.to_csv("damage_std.csv", index=True)
