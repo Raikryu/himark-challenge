@@ -23,6 +23,10 @@ const heatmap_data = reports.flatMap(d =>
     }))
 );
 
+const heatmapMax = Math.log(d3.max(heatmap_data.map(d => d.value)) + 1);
+
+const legendMax = d3.max(heatmap_data.map(d => d.value)); 
+
 const formatDate = d3.timeFormat("%Y-%m-%d");
 
 const days = {
@@ -39,17 +43,36 @@ const days = {
 
 const color = Plot.scale({
   color: {
-    type: "linear",
-    domain: [0, d3.quantile(heatmap_data.map(d => d.value), 0.95)], 
+    type: "log", 
+    domain: [1, Math.exp(heatmapMax) - 1], 
     range: ["#f7fbff", "#4292c6", "#08306b"], 
     legend: true
   }
 });
 
-
 ```
 
 ```js
+
+const legend = Plot.legend({
+  color: {
+    type: "linear",
+    domain: [0, 5000],
+    range: [
+      "#f7fbff",
+      "#4292c6",
+      "#08306b",
+      ...Array(9).fill("#08306b"),
+      ...Array(12).fill("#041C32"),
+      ...Array(8).fill("#00122e"), 
+    ],
+    label: "Number of Reports"
+  },
+  marginTop: 20,
+  width: 400
+});
+
+
 function heatmap(data, {width} = {}) {
   return Plot.plot({
     width,
@@ -57,6 +80,7 @@ function heatmap(data, {width} = {}) {
     marginLeft: 60,
     marginBottom: 40,
     x: {
+      type: "band",
       label: "Time",
       ticks: d3.timeHour.every(1), 
       tickFormat: d3.timeFormat("%H:%M") 
@@ -84,6 +108,9 @@ function heatmap(data, {width} = {}) {
 
 
 ```
+<div>
+  ${legend}
+</div>
 
 <div class="grid grid-cols-1">
   <div class="card">
