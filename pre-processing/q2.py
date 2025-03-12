@@ -65,10 +65,10 @@ damage_std = df.groupby('location')[damage].std()
 # break reporting into time frame
 df['time'] = pd.to_datetime(df['time'])
 
-df['time_30min'] = df['time'].dt.floor('30min')
+df['time_10min'] = df['time'].dt.floor('10min')
 
 new_col = df.pivot_table(
-    index='time_30min',
+    index='time_10min',
     columns='location', 
     aggfunc='size',  
     fill_value=0  
@@ -76,7 +76,7 @@ new_col = df.pivot_table(
 
 new_col.reset_index(inplace=True)
 
-reports_interval = df.groupby('time_30min').size().reset_index(name='number_of_reports')
-reports_location = df.groupby(['time_30min', 'location']).size().reset_index(name='number_of_reports')
+reports_interval = df.groupby('time_10min').size().reset_index(name='number_of_reports')
+reports_location = df.groupby(['time_10min', 'location']).size().reset_index(name='number_of_reports')
 
-damage_std.to_csv("damage_std.csv", index=True)
+new_col.to_csv("heatmap_data.csv", index=False)
