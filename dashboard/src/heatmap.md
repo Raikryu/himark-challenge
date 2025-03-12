@@ -36,8 +36,8 @@ const days = {
 const color = Plot.scale({
   color: {
     type: "linear",
-    domain: [0, d3.max(heatmap_data, d => d.value)],
-    range: ["#dbe9f6", "#08306b"], 
+    domain: [0, d3.quantile(heatmap_data.map(d => d.value), 0.95)], 
+    range: ["#f7fbff", "#4292c6", "#08306b"], 
     legend: true
   }
 });
