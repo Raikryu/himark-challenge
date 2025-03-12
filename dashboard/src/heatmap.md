@@ -23,7 +23,9 @@ const heatmap_data = reports.flatMap(d =>
 const days = {
   day1: heatmap_data.filter(d => d.time.startsWith("2020-04-06")),
   day2: heatmap_data.filter(d => d.time.startsWith("2020-04-07")),
-  day3: heatmap_data.filter(d => d.time.startsWith("2020-04-08"))
+  day3: heatmap_data.filter(d => d.time.startsWith("2020-04-08")),
+  day4: heatmap_data.filter(d => d.time.startsWith("2020-04-09")),
+  day5: heatmap_data.filter(d => d.time.startsWith("2020-04-10")),
 };
 
 
@@ -91,5 +93,14 @@ function heatmap(data, {width} = {}) {
     <h3>Date: April 8, 2020</h3>
     ${resize((width) => heatmap(days.day3, {width}))}
   </div>
+    <div class="card">
+    <h3>Date: April 9, 2020</h3>
+    ${resize((width) => heatmap(days.day4, {width}))}
+  </div>
+      <div class="card">
+    <h3>Date: April 10, 2020</h3>
+    ${resize((width) => heatmap(days.day5, {width}))}
+  </div>
+
 </div>
 
