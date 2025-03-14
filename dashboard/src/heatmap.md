@@ -86,7 +86,7 @@ function heatmap(data, {width} = {}) {
       tickFormat: d3.timeFormat("%H:%M") 
     },
     y: {
-      label: "Regions",
+      label: "Region",
       domain: Array.from({length: 19}, (_, i) => String(i + 1)) 
     },
     color,
