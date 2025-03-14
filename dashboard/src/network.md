@@ -19,7 +19,6 @@ const damage = [
   "shake_intensity"
 ];
 
-
 function scaleSize(value) {
   const minRadius = 120;
   const maxRadius = 300; 
@@ -30,8 +29,7 @@ function scaleSize(value) {
 function createNetworkDiagram(location) {
   const locationData = reports.find(d => d.location == location);
 
-  const locationNode = { id: `Location ${location}`, group: "location", x: 0, y: 0, r: 200 }; 
-
+  const locationNode = { id: `Location ${location}`, group: "location", x: 0, y: 0, r: 200 };
 
   const layoutRadius = 1.5; 
   const damageNodes = damage.map((damageType, i) => ({
@@ -61,7 +59,7 @@ function createNetworkDiagram(location) {
     };
   });
 
-return Plot.plot({
+  return Plot.plot({
     width: 700,
     height: 700,
     x: { domain: [-2, 2], axis: null },
@@ -100,40 +98,60 @@ return Plot.plot({
       })
     ]
   });
-
 }
 
-
-function renderNetworkDiagrams() {
+function renderDropdown() {
   const container = document.getElementById("radar-charts-container");
   container.innerHTML = "";
 
+  const dropdown = document.createElement("select");
+  dropdown.id = "locationDropdown";
+  dropdown.style.marginBottom = "20px";
+  
+  const defaultOption = document.createElement("option");
+  defaultOption.textContent = "Select a location";
+  defaultOption.value = "";
+  dropdown.appendChild(defaultOption);
+
   [...new Set(reports.map(d => d.location))].forEach(location => {
-    const sectionDiv = document.createElement("div");
-    sectionDiv.className = "network-chart-section";
-    sectionDiv.style.border = "1px solid #ddd";
-    sectionDiv.style.margin = "10px";
-    sectionDiv.style.padding = "10px";
-
-    const title = document.createElement("h3");
-
-
-    const chartDiv = document.createElement("div");
-    chartDiv.className = "network-chart";
-    chartDiv.style.display = "flex";
-    chartDiv.style.justifyContent = "center";
-
-    const networkDiagram = createNetworkDiagram(location);
-    chartDiv.appendChild(networkDiagram);
-
-    sectionDiv.appendChild(title);
-    sectionDiv.appendChild(chartDiv);
-
-    container.appendChild(sectionDiv);
+    const option = document.createElement("option");
+    option.value = location;
+    option.textContent = `Location ${location}`;
+    dropdown.appendChild(option);
   });
+
+  dropdown.addEventListener("change", () => {
+    const selectedLocation = dropdown.value;
+    if (selectedLocation) {
+      renderNetworkDiagram(selectedLocation);
+    }
+  });
+
+  container.appendChild(dropdown);
 }
 
-renderNetworkDiagrams();
+function renderNetworkDiagram(location) {
+  const container = document.getElementById("radar-charts-container");
+
+  const existingDiagram = document.getElementById("networkDiagram");
+  if (existingDiagram) {
+    existingDiagram.remove();
+  }
+
+  const diagramDiv = document.createElement("div");
+  diagramDiv.id = "networkDiagram";
+  diagramDiv.style.display = "flex";
+  diagramDiv.style.justifyContent = "center";
+  diagramDiv.style.marginTop = "20px";
+
+  const networkDiagram = createNetworkDiagram(location);
+  diagramDiv.appendChild(networkDiagram);
+
+  container.appendChild(diagramDiv);
+}
+
+
+renderDropdown();
 
 
 ```
