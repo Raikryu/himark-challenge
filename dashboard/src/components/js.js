@@ -1,6 +1,6 @@
 import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
 
-const csvFilePath = "daily_mean_by_location.csv";
+const csvFilePath = "/data/daily_mean_by_location.csv"; 
 let selectedLocations = new Set();
 
 
@@ -43,7 +43,6 @@ async function createChart(metric = "shake_intensity") {
     createLegend(allLocations);
 }
 
-
 function createLegend(locations) {
     document.getElementById("legend").innerHTML = "";
     locations.forEach(loc => {
@@ -56,15 +55,14 @@ function createLegend(locations) {
     });
 }
 
+export function initializeChart() {
+    document.addEventListener("DOMContentLoaded", () => {
+        const dropdown = document.getElementById("variable-select");
+        ["shake_intensity", "sewer_and_water", "power", "roads_and_bridges", "medical", "buildings"].forEach(m => 
+            dropdown.append(new Option(m.replace("_", " ").toUpperCase(), m))
+        );
+        dropdown.addEventListener("change", () => createChart(dropdown.value));
 
-document.addEventListener("DOMContentLoaded", () => {
-    const dropdown = document.getElementById("variable-select");
-    ["shake_intensity", "sewer_and_water", "power", "roads_and_bridges", "medical", "buildings"].forEach(m => 
-        dropdown.append(new Option(m.replace("_", " ").toUpperCase(), m))
-    );
-    dropdown.addEventListener("change", () => createChart(dropdown.value));
-    
-    document.body.append(Object.assign(document.createElement("div"), { id: "legend" }));
-    
-    createChart();
-});
+        createChart();
+    });
+}
