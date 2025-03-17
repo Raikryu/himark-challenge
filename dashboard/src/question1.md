@@ -6,30 +6,34 @@ toc: false
 
 # Shake Intensity Over Time 🌍
 
-<!-- Load the data -->
-
 ```js
 FileAttachment("data/daily_mean_by_location.csv").csv({typed: true}).then(loadedData => {
-  const parseDate = d3.timeParse("%d/%m/%Y");
+  const parsethedate = d3.timeParse("%d/%m/%Y");
   loadedData.forEach(d => {
-      d.date = parseDate(d.date); 
+      d.date = parsethedate(d.date); 
       if (!d.date) {
-          console.error("❌ Date Parsing Failed for:", d);
+          console.error("err", d);
       }
   });
 
-  const startDate = parseDate("06/04/2020");
-  const endDate = parseDate("10/04/2020");
+  const startDate = parsethedate("06/04/2020");
+  const endDate = parsethedate("10/04/2020");
   let filteredData = loadedData.filter(d => d.date >= startDate && d.date <= endDate);
+  
 
-  const uniqueLocations = Array.from(new Set(filteredData.map(d => String(d.location))));
-  const colorScale = d3.scaleOrdinal(d3.schemeCategory10.concat(d3.schemeSet3, d3.schemePaired)).domain(uniqueLocations);
+  const locationSet = new Set();
+  filteredData.forEach(d => locationSet.add(String(d.location)));
+  const uniqueLocations = [...locationSet];
 
-  function shakeIntensityChart(data, {width, yMetric = "shake_intensity"} = {}) {
+  const colorSchemes = [...d3.schemeCategory10, ...d3.schemeSet3, ...d3.schemePaired];
+  const colorScale = d3.scaleOrdinal(colorSchemes).domain(uniqueLocations);
+
+
+  function Line_Chart(data, {width, yMetric = "shake_intensity"} = {}) {
     return Plot.plot({
-      title: "Shake Intensity Over Time by Neighborhood",
+      title: "Variable Change Over Time by Neighborhood",
       width,
-      height: 400,
+      height: 430,
       marginLeft: 50,
       marginBottom: 50,
       x: {
@@ -48,26 +52,36 @@ FileAttachment("data/daily_mean_by_location.csv").csv({typed: true}).then(loaded
     });
   }
 
-  function updateChart(metric) {
-    const selectedLocations = Array.from(document.querySelectorAll(".location-checkbox:checked"))
-      .map(cb => cb.value);
-    const filteredSubset = filteredData.filter(d => selectedLocations.includes(String(d.location)));
-    
+
+
+function updateLineChart(selectedMetric) {
+
+    const selectedLocations = [...document.querySelectorAll(".location-checkbox:checked")]
+        .map(checkbox => checkbox.value);
+
+  
+    const filteredDataSubset = filteredData.filter(entry => selectedLocations.includes(String(entry.location)));
+
+
     const chartContainer = document.getElementById("chart-container");
     chartContainer.innerHTML = "";
-    const newChart = shakeIntensityChart(filteredSubset, {width: chartContainer.clientWidth, yMetric: metric});
+
+
+    const newChart = Line_Chart(filteredDataSubset, { width: chartContainer.clientWidth, yMetric: selectedMetric });
+
+
     if (newChart) {
-      chartContainer.appendChild(newChart);
+        chartContainer.appendChild(newChart);
     } else {
-      console.error("Chart generation failed.");
+        console.error("Failure");
     }
-  }
+}
 
-  document.getElementById("metric-select").addEventListener("change", function() {
-    updateChart(this.value);
-  });
+document.getElementById("metric-select").addEventListener("change", event => {
+    updateLineChart(event.target.value);
+});
 
-  // Generate location checkboxes
+
   const locationFilter = document.getElementById("location-filter");
   uniqueLocations.forEach(location => {
     const label = document.createElement("label");
@@ -76,48 +90,41 @@ FileAttachment("data/daily_mean_by_location.csv").csv({typed: true}).then(loaded
     checkbox.value = location;
     checkbox.checked = true;
     checkbox.classList.add("location-checkbox");
-    checkbox.addEventListener("change", () => updateChart(document.getElementById("metric-select").value));
+    checkbox.addEventListener("change", () => updateLineChart(document.getElementById("metric-select").value));
     label.appendChild(checkbox);
     label.appendChild(document.createTextNode(` Neighborhood ${location} `));
     locationFilter.appendChild(label);
   });
 
-  // Initial Render
-  updateChart("shake_intensity");
+
+  updateLineChart("shake_intensity");
 });
 ```
 
-<!-- Dropdown Form Above the Graph -->
 
-<div class="grid grid-cols-1">
-  <div class="card">
-    <label for="metric-select">Choose a Metric:</label>
-    <select id="metric-select">
-      <option value="shake_intensity">Shake Intensity</option>
-      <option value="sewer_and_water">Sewer & Water</option>
-      <option value="power">Power</option>
-      <option value="roads_and_bridges">Roads & Bridges</option>
-      <option value="medical">Medical</option>
-      <option value="buildings">Buildings</option>
-    </select>
-  </div>
+
+<div class="section">
+  <label for="metric-select"><strong>Choose a Metric:</strong></label>
+  <select id="metric-select">
+    <option value="shake_intensity">Shake Intensity</option>
+    <option value="sewer_and_water">Sewer & Water</option>
+    <option value="power">Power</option>
+    <option value="roads_and_bridges">Roads & Bridges</option>
+    <option value="medical">Medical</option>
+    <option value="buildings">Buildings</option>
+  </select>
 </div>
 
-<!-- Location Selection Checkboxes -->
 
-<div class="grid grid-cols-1">
-  <div class="card">
-    <label><strong>Select Locations:</strong></label>
-    <div id="location-filter"></div>
-  </div>
+<div class="section">
+  <label><strong>Filter by Location:</strong></label>
+  <div id="location-filter"></div>
 </div>
 
-<!-- Display the Line Chart -->
 
-<div class="grid grid-cols-1">
-  <div class="card">
-    <div id="chart-container"></div>
-  </div>
+<div class="section">
+  <div id="chart-container" class="chart-box"></div>
 </div>
+
 
 Data Source: Earthquake Monitoring System
