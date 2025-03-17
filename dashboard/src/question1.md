@@ -15,10 +15,19 @@ const data = FileAttachment("data/daily_mean_by_location.csv").csv({typed: true}
 <!-- Fix Date Formatting & Filter Data for the Required Date Range -->
 
 ```js
-const parseDate = d3.timeParse("%d/%m/%Y"); // Parse DD/MM/YYYY format
-data.forEach(d => d.date = parseDate(d.date)); // Convert dates to JS Date objects
+const parseDate = d3.timeParse("%d/%m/%Y"); // Ensure proper parsing
+data.forEach(d => {
+    d.date = parseDate(d.date); 
+    if (!d.date) {
+        console.error("❌ Date Parsing Failed for:", d);
+    }
+});
 
-const filteredData = data.filter(d => d.date >= new Date("2020-04-06") && d.date <= new Date("2020-04-10"));
+
+const startDate = parseDate("06/04/2020");
+const endDate = parseDate("10/04/2020");
+const filteredData = data.filter(d => d.date >= startDate && d.date <= endDate);
+
 ```
 
 <!-- Define a Unique Color Scale for Each Neighborhood -->
@@ -53,6 +62,10 @@ function shakeIntensityChart(data, {width} = {}) {
     ]
   });
 }
+
+
+
+
 ```
 
 <!-- Display the Line Chart -->
@@ -64,3 +77,5 @@ function shakeIntensityChart(data, {width} = {}) {
 </div>
 
 Data Source: Earthquake Monitoring System
+
+
