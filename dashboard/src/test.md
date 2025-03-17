@@ -20,7 +20,7 @@ FileAttachment("data/daily_mean_by_location.csv").csv({typed: true}).then(loaded
 
   const startDate = parseDate("06/04/2020");
   const endDate = parseDate("10/04/2020");
-  let filteredData = loadedData.filter(d => d.date >= startDate && d.date <= endDate);
+  const filteredData = loadedData.filter(d => d.date >= startDate && d.date <= endDate);
 
   const uniqueLocations = Array.from(new Set(filteredData.map(d => String(d.location))));
   const colorScale = d3.scaleOrdinal(d3.schemeCategory10.concat(d3.schemeSet3, d3.schemePaired)).domain(uniqueLocations);
@@ -48,39 +48,22 @@ FileAttachment("data/daily_mean_by_location.csv").csv({typed: true}).then(loaded
     });
   }
 
+  document.getElementById("metric-select").addEventListener("change", function() {
+    const selectedMetric = this.value;
+    updateChart(selectedMetric);
+  });
+
   function updateChart(metric) {
-    const selectedLocations = Array.from(document.querySelectorAll(".location-checkbox:checked"))
-      .map(cb => cb.value);
-    const filteredSubset = filteredData.filter(d => selectedLocations.includes(String(d.location)));
-    
     const chartContainer = document.getElementById("chart-container");
     chartContainer.innerHTML = "";
-    const newChart = shakeIntensityChart(filteredSubset, {width: chartContainer.clientWidth, yMetric: metric});
+    
+    const newChart = shakeIntensityChart(filteredData, {width: chartContainer.clientWidth, yMetric: metric});
     if (newChart) {
       chartContainer.appendChild(newChart);
     } else {
       console.error("Chart generation failed.");
     }
   }
-
-  document.getElementById("metric-select").addEventListener("change", function() {
-    updateChart(this.value);
-  });
-
-  // Generate location checkboxes
-  const locationFilter = document.getElementById("location-filter");
-  uniqueLocations.forEach(location => {
-    const label = document.createElement("label");
-    const checkbox = document.createElement("input");
-    checkbox.type = "checkbox";
-    checkbox.value = location;
-    checkbox.checked = true;
-    checkbox.classList.add("location-checkbox");
-    checkbox.addEventListener("change", () => updateChart(document.getElementById("metric-select").value));
-    label.appendChild(checkbox);
-    label.appendChild(document.createTextNode(` Neighborhood ${location} `));
-    locationFilter.appendChild(label);
-  });
 
   // Initial Render
   updateChart("shake_intensity");
@@ -100,15 +83,6 @@ FileAttachment("data/daily_mean_by_location.csv").csv({typed: true}).then(loaded
       <option value="medical">Medical</option>
       <option value="buildings">Buildings</option>
     </select>
-  </div>
-</div>
-
-<!-- Location Selection Checkboxes -->
-
-<div class="grid grid-cols-1">
-  <div class="card">
-    <label><strong>Select Locations:</strong></label>
-    <div id="location-filter"></div>
   </div>
 </div>
 
