@@ -4,7 +4,7 @@ title: line_graph
 toc: false
 ---
 
-# Variables Over Time 🌍
+# Varaibles Over Time 🌍
 
 ```js
 FileAttachment("data/daily_mean_by_location.csv").csv({typed: true}).then(loadedData => {
