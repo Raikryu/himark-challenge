@@ -62,7 +62,6 @@ underreported = reports[reports < threshold].index.tolist()
 damage = ['sewer_and_water', 'power', 'roads_and_bridges', 'medical', 'buildings', 'shake_intensity']
 damage_std = df.groupby('location')[damage].std()
 
-
 # break reporting into time frame
 df['time'] = pd.to_datetime(df['time'])
 
