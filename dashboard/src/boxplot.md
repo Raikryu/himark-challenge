@@ -30,49 +30,84 @@ toc: false
 
 ```js
 
+FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
+  // 🔧 Clean line endings, auto-type fields
+  const cleaned = text.replace(/\r\n/g, "\n").trim();
+  const raw = d3.csvParse(cleaned, d3.autoType);
 
-
-// Upload your file and use FileAttachment
-data = FileAttachment("data/cleaned_mc1-reports-data.csv").csv({typed: true}).then(raw => {
   const parseDate = d3.timeParse("%d/%m/%Y %H:%M");
-  return raw.map(d => {
+
+  // ⏱️ Parse time and clean location values
+  raw.forEach(d => {
     d.numericDate = parseDate(d.time);
+    d.location = String(d.location).trim(); // 💡 ensure consistent string
     d.date = d.numericDate ? d.numericDate.toISOString().split("T")[0] : null;
-    return d;
   });
-})
 
+  // 📅 Filter for the desired date range
+  const startDate = new Date("2020-04-06");
+  const endDate = new Date("2020-04-10");
+  const validData = raw.filter(d => d.numericDate && d.numericDate >= startDate && d.numericDate <= endDate);
 
-filtered = data.filter(d =>
-  d.numericDate &&
-  d.numericDate >= new Date("2020-04-06") &&
-  d.numericDate <= new Date("2020-04-10") &&
-  String(d.location).trim() === selectedLocation &&
-  !isNaN(d[selectedMetric])
-)
+  // 🧭 Get unique, sorted locations
+  const locationSet = new Set(validData.map(d => d.location));
+  const uniqueLocations = [...locationSet].sort((a, b) => +a - +b); // 🔢 sort numerically
 
+  // 📥 Populate location dropdown
+  const locationSelect = document.getElementById("location-select");
+  locationSelect.innerHTML = ""; // clear existing
+  uniqueLocations.forEach(loc => {
+    const opt = document.createElement("option");
+    opt.value = loc;
+    opt.textContent = `Neighborhood ${loc}`;
+    locationSelect.appendChild(opt);
+  });
 
+  // Metric selector already present
+  const metricSelect = document.getElementById("metric-select");
 
-Plot.plot({
-  width: 800,
-  height: 500,
-  x: {
-    type: "time",
-    label: "Date",
-    ticks: d3.timeDay.every(1),
-    tickFormat: d3.timeFormat("%Y-%m-%d")
-  },
-  y: {
-    label: selectedMetric,
-    grid: true
-  },
-  marks: [
-    Plot.ruleY([0]),
-    Plot.boxY(filtered, {
-      x: "numericDate",
-      y: selectedMetric,
-      fill: "steelblue",
-      opacity: 0.7
-    })
-  ]
-})
+  function drawBoxPlot() {
+    const selectedLocation = locationSelect.value;
+    const selectedMetric = metricSelect.value;
+
+    const filtered = validData.filter(d =>
+      d.location === selectedLocation && !isNaN(d[selectedMetric])
+    );
+
+    const chart = Plot.plot({
+      width: 800,
+      height: 500,
+      x: {
+        label: "Date",
+        type: "band" // ✅ required for categorical string x-axis
+      },
+      y: {
+        label: selectedMetric,
+        grid: true
+      },
+      marks: [
+        Plot.ruleY([0]),
+        Plot.boxY(filtered, {
+          x: "date", // ✅ string like "2020-04-07"
+          y: selectedMetric,
+          fill: "steelblue",
+          opacity: 0.7
+        })
+      ]
+    });
+
+    const container = document.getElementById("chart-container");
+    container.innerHTML = "";
+    container.appendChild(chart);
+  }
+
+  // 🧠 Dropdown listeners
+  locationSelect.addEventListener("change", drawBoxPlot);
+  metricSelect.addEventListener("change", drawBoxPlot);
+
+  // 🚀 Initial render after short delay
+  setTimeout(() => {
+    locationSelect.selectedIndex = 0;
+    drawBoxPlot();
+  }, 100);
+});
