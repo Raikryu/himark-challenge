@@ -31,42 +31,32 @@ toc: false
 ```js
 
 FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
-  // 🔧 Clean line endings, auto-type fields
-  const cleaned = text.replace(/\r\n/g, "\n").trim();
-  const raw = d3.csvParse(cleaned, d3.autoType);
-
+  const raw = d3.csvParse(text.replace(/\r\n/g, "\n").trim(), d3.autoType);
   const parseDate = d3.timeParse("%d/%m/%Y %H:%M");
 
-  // ⏱️ Parse time and clean location values
   raw.forEach(d => {
     d.numericDate = parseDate(d.time);
-    d.location = String(d.location).trim(); // 💡 ensure consistent string
+    d.location = String(d.location).trim();
     d.date = d.numericDate ? d.numericDate.toISOString().split("T")[0] : null;
   });
 
-  // 📅 Filter for the desired date range
-  const startDate = new Date("2020-04-06");
-  const endDate = new Date("2020-04-10");
-  const validData = raw.filter(d => d.numericDate && d.numericDate >= startDate && d.numericDate <= endDate);
+  const rangeStart = new Date("2020-04-06");
+  const rangeEnd = new Date("2020-04-10");
+  const validData = raw.filter(d => d.numericDate >= rangeStart && d.numericDate <= rangeEnd);
 
-  // 🧭 Get unique, sorted locations
-  const locationSet = new Set(validData.map(d => d.location));
-  const uniqueLocations = [...locationSet].sort((a, b) => +a - +b); // 🔢 sort numerically
-
-  // 📥 Populate location dropdown
+  const locations = [...new Set(validData.map(d => d.location))].sort((a, b) => +a - +b);
   const locationSelect = document.getElementById("location-select");
-  locationSelect.innerHTML = ""; // clear existing
-  uniqueLocations.forEach(loc => {
-    const opt = document.createElement("option");
-    opt.value = loc;
-    opt.textContent = `Neighborhood ${loc}`;
-    locationSelect.appendChild(opt);
+  locationSelect.innerHTML = "";
+  locations.forEach(loc => {
+    const option = document.createElement("option");
+    option.value = loc;
+    option.textContent = `Neighborhood ${loc}`;
+    locationSelect.appendChild(option);
   });
 
-  // Metric selector already present
   const metricSelect = document.getElementById("metric-select");
 
-  function drawBoxPlot() {
+  function draw() {
     const selectedLocation = locationSelect.value;
     const selectedMetric = metricSelect.value;
 
@@ -77,18 +67,12 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
     const chart = Plot.plot({
       width: 800,
       height: 500,
-      x: {
-        label: "Date",
-        type: "band" // ✅ required for categorical string x-axis
-      },
-      y: {
-        label: selectedMetric,
-        grid: true
-      },
+      x: { label: "Date", type: "band" },
+      y: { label: selectedMetric, grid: true },
       marks: [
         Plot.ruleY([0]),
         Plot.boxY(filtered, {
-          x: "date", // ✅ string like "2020-04-07"
+          x: "date",
           y: selectedMetric,
           fill: "steelblue",
           opacity: 0.7
@@ -101,13 +85,11 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
     container.appendChild(chart);
   }
 
-  // 🧠 Dropdown listeners
-  locationSelect.addEventListener("change", drawBoxPlot);
-  metricSelect.addEventListener("change", drawBoxPlot);
+  locationSelect.addEventListener("change", draw);
+  metricSelect.addEventListener("change", draw);
 
-  // 🚀 Initial render after short delay
   setTimeout(() => {
     locationSelect.selectedIndex = 0;
-    drawBoxPlot();
+    draw();
   }, 100);
 });
