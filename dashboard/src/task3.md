@@ -123,7 +123,32 @@ function heatmap(data, {width} = {}) {
 
 # Damage Uncertainty by Location
 
+<style>
+  #plot-wrapper {
+    width: 100%;       
+    display: flex;
+    flex-direction: column;
+    align-items: center;    
+
+  }
+
+  #dropdown-container {
+    width: 100%;       
+    max-width: 400px;    
+    margin-bottom: 0px; 
+    text-align: center; 
+  }
+
+  #plot-container {
+    width: 100%;         
+    max-width: 1000px;   
+    margin: 0 auto;      
+    height: 600px;       
+  }
+</style>
 ```js
+
+
 const uncertaintyData = await FileAttachment("data/uncertainty2.csv").csv({typed: true});
 
 const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
@@ -176,7 +201,7 @@ function updatePlot() {
     },
     y: {
       label: "Location",
-      domain: Array.from({ length: 19 }, (_, i) => i + 1) // 
+      domain: Array.from({ length: 19 }, (_, i) => i + 1) 
     },
     color: { scheme: "category10" },
     marks: [
@@ -198,4 +223,3 @@ function updatePlot() {
 const plotContainer = wrapper.append("div").attr("id", "plot-container");
 
 updatePlot();
-
