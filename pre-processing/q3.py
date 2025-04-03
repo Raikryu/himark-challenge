@@ -33,9 +33,22 @@ reports.columns = ["region", "reports"]
 
 damage = ['sewer_and_water', 'power', 'roads_and_bridges', 'medical', 'buildings', 'shake_intensity']
 
+
+
 df['time'] = pd.to_datetime(df['time'])
 df['time_5min'] = df['time'].dt.floor('5min')
+df['time_30min'] = df['time'].dt.floor('30min')
 
 uncertainty_df = df.groupby('time_5min')[damage].std().reset_index()
 
-uncertainty_df.to_csv("uncertainty.csv", index=False)
+uncertainty2_df = df.groupby(['location', 'time_5min'])[damage].std().reset_index()
+
+min_values = df.groupby(['location', 'time_30min'])[damage].min().reset_index()
+max_values = df.groupby(['location', 'time_30min'])[damage].max().reset_index()
+
+min_values = min_values.rename(columns={col: col + "_min" for col in damage})
+max_values = max_values.rename(columns={col: col + "_max" for col in damage})
+
+minmax_df = pd.merge(min_values, max_values, on=['location', 'time_30min'])
+
+minmax_df.to_csv("data/minmax.csv", index=False)

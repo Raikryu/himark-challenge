@@ -4,7 +4,7 @@ title: Uncertainty Overtime
 toc: false
 ---
 
-# Uncertainty Timeline
+# Damage Uncertainty Timeline
 
 ```js
 
@@ -120,4 +120,82 @@ function heatmap(data, {width} = {}) {
     ${resize((width) => heatmap(days.day5, {width}))}
   </div>
 </div>
+
+# Damage Uncertainty by Location
+
+```js
+const uncertaintyData = await FileAttachment("data/uncertainty2.csv").csv({typed: true});
+
+const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
+
+const bubbleData = uncertaintyData.flatMap(d =>
+  Object.keys(d)
+    .filter(key => key !== "location" && key !== "time_5min") 
+    .map(damageType => ({
+      time: parseTime(d.time_5min),
+      location: d.location,
+      damageType: damageType,
+      value: d[damageType],
+      size: d[damageType],  
+    }))
+);
+
+const damageTypes = Array.from(new Set(bubbleData.map(d => d.damageType)));
+
+const wrapper = d3.select("body").append("div").attr("id", "plot-wrapper");
+
+const dropdownContainer = wrapper.append("div").attr("id", "dropdown-container")
+
+const dropdown = dropdownContainer.append("select")
+  .attr("id", "damage-type-selector")
+  .on("change", updatePlot);
+
+dropdown.selectAll("option")
+  .data(damageTypes)
+  .enter().append("option")
+  .text(d => d)
+  .attr("value", d => d);
+
+let selectedDamageType = damageTypes[0];
+
+function updatePlot() {
+  selectedDamageType = d3.select("#damage-type-selector").property("value");
+
+  d3.select("#plot-container").html(""); 
+
+  const plot = Plot.plot({
+    width: 1000,
+    height: 600,
+    marginLeft: 100,
+    marginBottom: 60,
+    x: {
+      label: "Time",
+      type: "utc",
+      ticks: d3.timeHour.every(24),
+      tickFormat: d3.timeFormat("%H:%M")
+    },
+    y: {
+      label: "Location",
+      domain: Array.from({ length: 19 }, (_, i) => i + 1) // 
+    },
+    color: { scheme: "category10" },
+    marks: [
+      Plot.dot(bubbleData.filter(d => d.damageType === selectedDamageType), {
+        x: "time",
+        y: "location",
+        r: "size",
+        fill: "damageType",
+        opacity: 0.6,
+        title: (d) => `${d.damageType}: ${d.value}`
+      })
+    ],
+    interaction: { zoom: true, wheel: true, pan: true }
+  });
+
+  d3.select("#plot-container").node().appendChild(plot);
+}
+
+const plotContainer = wrapper.append("div").attr("id", "plot-container");
+
+updatePlot();
 
