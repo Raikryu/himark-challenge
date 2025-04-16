@@ -121,7 +121,6 @@ function heatmap(data, {width} = {}) {
   </div>
 </div>
 
-# Damage Uncertainty by Location
 
 <style>
   #plot-wrapper {
@@ -146,6 +145,201 @@ function heatmap(data, {width} = {}) {
     height: 600px;       
   }
 </style>
+
+# Damage Overtime
+
+```js
+
+const reports = await FileAttachment("data/avgdamage.csv").csv({ typed: true });
+
+const damageTypes = [
+  "sewer_and_water",
+  "power",
+  "roads_and_bridges",
+  "medical",
+  "buildings",
+  "shake_intensity"
+];
+
+const timeValues = [...new Set(reports.map(d => d.time_5min))].sort((a, b) => new Date(a) - new Date(b));
+
+const neighborLinks = {
+  1: [2, 5],
+  2: [1, 5, 6, 3],
+  3: [2, 15, 14, 4],
+  4: [3, 14, 19, 18, 13, 12],
+  5: [1, 2, 6, 16, 19, 17],
+  6: [2, 5, 16, 15],
+  7: [12, 11, 8],
+  8: [9, 10, 11, 7],
+  9: [17, 13, 10, 8],
+  10: [8, 9, 13, 12, 11],
+  11: [10, 13, 12, 7, 8],
+  12: [4, 13, 10, 11, 7],
+  13: [4, 12, 18, 17, 9, 10, 11],
+  14: [3, 4, 19, 16, 15, 18],
+  15: [2, 3, 14, 19, 16, 6],
+  16: [6, 15, 14, 19, 5],
+  17: [19, 18, 13, 9, 5],
+  18: [4, 14, 19, 17, 13],
+  19: [14, 4, 18, 17, 5, 16, 15]
+};
+
+const locations = Array.from({ length: 19 }, (_, i) => i + 1);
+
+const layoutRadius = 1.5;
+const angleStep = (2 * Math.PI) / locations.length;
+const locationPositions = Object.fromEntries(
+  locations.map((loc, i) => [
+    loc,
+    {
+      x: Math.cos(i * angleStep) * layoutRadius,
+      y: Math.sin(i * angleStep) * layoutRadius
+    }
+  ])
+);
+
+function scaleSize(value) {
+  const minRadius = 50;
+  const maxRadius = 200;
+  return minRadius + (value * (maxRadius - minRadius));
+}
+
+function createNetworkDiagram(time, selectedDamage) {
+  const dataAtTime = Object.fromEntries(
+    reports.filter(d => d.time_5min === time)
+           .map(d => [d.location, d])
+  );
+
+  const nodes = locations.map(loc => {
+    const pos = locationPositions[loc];
+    const data = dataAtTime[loc];
+    const value = data ? data[selectedDamage] : null;
+    const isMissing = value === null || value === undefined || isNaN(value);
+    return {
+      id: loc,
+      group: "location",
+      x: pos.x,
+      y: pos.y,
+      r: isMissing ? 20 : scaleSize(value),
+      fill: isMissing ? "red" : "#4292c6"
+    };
+  });
+
+  const links = [];
+  for (const [source, targets] of Object.entries(neighborLinks)) {
+    for (const target of targets) {
+      if (Number(source) < target) {
+        links.push({
+          source: +source,
+          target,
+          x1: locationPositions[source].x,
+          y1: locationPositions[source].y,
+          x2: locationPositions[target].x,
+          y2: locationPositions[target].y
+        });
+      }
+    }
+  }
+
+  return Plot.plot({
+    width: 800,
+    height: 800,
+    x: { domain: [-2, 2], axis: null },
+    y: { domain: [-2, 2], axis: null },
+    marks: [
+      Plot.link(links, {
+        x1: "x1",
+        y1: "y1",
+        x2: "x2",
+        y2: "y2",
+        stroke: "gray",
+        strokeWidth: 2
+      }),
+      Plot.dot(nodes, {
+        x: "x",
+        y: "y",
+        r: "r",
+        fill: "fill"
+      }),
+      Plot.text(nodes, {
+        x: "x",
+        y: "y",
+        text: d => d.id,
+        fill: "white",
+        textAnchor: "middle",
+        fontSize: 14
+      })
+    ]
+  });
+}
+
+function renderControls() {
+  const container = document.getElementById("network-container");
+  container.innerHTML = "";
+
+  const controlsDiv = document.createElement("div");
+  controlsDiv.style.marginBottom = "20px";
+
+  const dropdown = document.createElement("select");
+  damageTypes.forEach(type => {
+    const option = document.createElement("option");
+    option.value = type;
+    option.textContent = type.replace(/_/g, " ");
+    dropdown.appendChild(option);
+  });
+
+  const slider = document.createElement("input");
+  slider.type = "range";
+  slider.min = 0;
+  slider.max = timeValues.length - 1;
+  slider.value = 0;
+  slider.style.width = "100%";
+  slider.style.marginTop = "10px";
+
+  const timeLabel = document.createElement("div");
+  timeLabel.style.marginTop = "5px";
+
+  const updateDiagram = () => {
+    const selectedTime = timeValues[slider.value];
+    const selectedDamage = dropdown.value;
+    timeLabel.textContent = `Time: ${new Date(selectedTime).toLocaleString()}`;
+    renderNetworkDiagram(selectedTime, selectedDamage);
+  };
+
+  dropdown.addEventListener("change", updateDiagram);
+  slider.addEventListener("input", updateDiagram);
+
+  controlsDiv.appendChild(dropdown);
+  controlsDiv.appendChild(slider);
+  controlsDiv.appendChild(timeLabel);
+  container.appendChild(controlsDiv);
+
+  updateDiagram();
+}
+
+function renderNetworkDiagram(time, damageType) {
+  const container = document.getElementById("network-container");
+  let existing = document.getElementById("networkDiagram");
+  if (existing) existing.remove();
+
+  const diagramDiv = document.createElement("div");
+  diagramDiv.id = "networkDiagram";
+  diagramDiv.style.marginTop = "20px";
+  diagramDiv.appendChild(createNetworkDiagram(time, damageType));
+
+  container.appendChild(diagramDiv);
+}
+
+renderControls();
+
+```
+
+<div id="network-container"></div>
+
+
+# Damage Uncertainty by Location
+
 ```js
 
 
@@ -165,6 +359,7 @@ const bubbleData = uncertaintyData.flatMap(d =>
     }))
 );
 
+
 const damageTypes = Array.from(new Set(bubbleData.map(d => d.damageType)));
 
 const wrapper = d3.select("body").append("div").attr("id", "plot-wrapper");
@@ -182,6 +377,7 @@ dropdown.selectAll("option")
   .attr("value", d => d);
 
 let selectedDamageType = damageTypes[0];
+
 
 function updatePlot() {
   selectedDamageType = d3.select("#damage-type-selector").property("value");

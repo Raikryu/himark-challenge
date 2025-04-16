@@ -45,10 +45,11 @@ uncertainty2_df = df.groupby(['location', 'time_5min'])[damage].std().reset_inde
 
 min_values = df.groupby(['location', 'time_30min'])[damage].min().reset_index()
 max_values = df.groupby(['location', 'time_30min'])[damage].max().reset_index()
+avg_damage = df.groupby(['location', 'time_5min'])[damage].mean().reset_index()
 
 min_values = min_values.rename(columns={col: col + "_min" for col in damage})
 max_values = max_values.rename(columns={col: col + "_max" for col in damage})
 
 minmax_df = pd.merge(min_values, max_values, on=['location', 'time_30min'])
 
-minmax_df.to_csv("data/minmax.csv", index=False)
+avg_damage.to_csv("data/avgdamage.csv", index=False)
