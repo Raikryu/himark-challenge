@@ -190,7 +190,7 @@ function correlation(x, y) {
           fill: "correlation",
           width: 1,
           height: 1,
-          title: d => `${d.metric1} vs ${d.metric2}: ${d.correlation.toFixed(2)}`
+          title: d => `${d.metric2} vs ${d.metric2}: ${d.correlation.toFixed(2)}`
         })
       ],
       color: {
@@ -311,3 +311,288 @@ display(svg.node());
 
 
 ```
+# Earthquake Damage (Standard Deviation)
+
+```js
+
+const reports = await FileAttachment("data/damage_std.csv").csv({ typed: true });
+
+const damage = [
+  "sewer_and_water",
+  "power",
+  "roads_and_bridges",
+  "medical",
+  "buildings",
+  "shake_intensity"
+];
+
+function scaleSize(value) {
+  const minRadius = 120;
+  const maxRadius = 300;
+  const scalingFactor = 4;
+  return minRadius + (Math.pow(value, scalingFactor) * (maxRadius - minRadius));
+}
+
+function createNetworkDiagram(location) {
+  const locationData = reports.find(d => d.location == location);
+
+  const locationNode = { id: `Location ${location}`, group: "location", x: 0, y: 0, r: 200 };
+
+  const layoutRadius = 1.5;
+  const damageNodes = damage.map((damageType, i) => ({
+    id: damageType,
+    group: "damage",
+    x: Math.cos((i / damage.length) * 2 * Math.PI) * layoutRadius,
+    y: Math.sin((i / damage.length) * 2 * Math.PI) * layoutRadius,
+    r: scaleSize(locationData[damageType])
+  }));
+
+  const nodes = [locationNode, ...damageNodes];
+
+  const links = damage.map(damageType => {
+    const targetNode = damageNodes.find(node => node.id === damageType);
+    const midpointX = (locationNode.x + targetNode.x) / 2;
+    const midpointY = (locationNode.y + targetNode.y) / 2;
+    return {
+      source: locationNode.id,
+      target: damageType,
+      x1: locationNode.x,
+      y1: locationNode.y,
+      x2: targetNode.x,
+      y2: targetNode.y,
+      midpointX,
+      midpointY,
+      text: damageType
+    };
+  });
+
+  return Plot.plot({
+    width: 700,
+    height: 700,
+    x: { domain: [-2, 2], axis: null },
+    y: { domain: [-2, 2], axis: null },
+    marks: [
+      Plot.link(links, {
+        x1: "x1",
+        y1: "y1",
+        x2: "x2",
+        y2: "y2",
+        stroke: "gray",
+        strokeWidth: 4
+      }),
+      Plot.dot(nodes, {
+        x: "x",
+        y: "y",
+        fill: d => (d.group === "location" ? "white" : "#4292c6"),
+        r: "r"
+      }),
+      Plot.text(nodes, {
+        x: "x",
+        y: "y",
+        text: d => (d.group === "location" ? d.id : ""),
+        fill: "white",
+        textAnchor: "middle",
+        fontSize: 18,
+        fontWeight: "bold"
+      }),
+      Plot.text(links, {
+        x: "midpointX",
+        y: "midpointY",
+        text: "text",
+        fill: "white",
+        textAnchor: "middle",
+        fontSize: 14
+      })
+    ]
+  });
+}
+
+function renderDropdown() {
+  const container = document.getElementById("radar-charts-container");
+  container.innerHTML = "";
+
+  const dropdown = document.createElement("select");
+  dropdown.id = "locationDropdown";
+  dropdown.style.marginBottom = "20px";
+
+  const defaultOption = document.createElement("option");
+  defaultOption.textContent = "Select a location";
+  defaultOption.value = "";
+  dropdown.appendChild(defaultOption);
+
+  [...new Set(reports.map(d => d.location))].forEach(location => {
+    const option = document.createElement("option");
+    option.value = location;
+    option.textContent = `Location ${location}`;
+    dropdown.appendChild(option);
+  });
+
+  dropdown.addEventListener("change", () => {
+    const selectedLocation = dropdown.value;
+    if (selectedLocation) {
+      renderNetworkDiagram(selectedLocation);
+    }
+  });
+
+  container.appendChild(dropdown);
+}
+
+function renderNetworkDiagram(location) {
+  const container = document.getElementById("radar-charts-container");
+
+  const existingDiagram = document.getElementById("networkDiagram");
+  if (existingDiagram) {
+    existingDiagram.remove();
+  }
+
+  const diagramDiv = document.createElement("div");
+  diagramDiv.id = "networkDiagram";
+  diagramDiv.style.display = "flex";
+  diagramDiv.style.justifyContent = "center";
+  diagramDiv.style.marginTop = "20px";
+
+  const networkDiagram = createNetworkDiagram(location);
+  diagramDiv.appendChild(networkDiagram);
+
+  container.appendChild(diagramDiv);
+}
+
+
+renderDropdown();
+
+
+```
+
+<div id="radar-charts-container"></div>
+
+# Earthquake Reports Timeline
+
+```js
+
+const reports = await FileAttachment("data/heatmap_data.csv").csv({typed: true,
+});
+
+const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
+
+const heatmap_data = reports.flatMap(d =>
+  Object.keys(d)
+    .filter(key => key !== "time_30min")
+    .map(region => ({
+      time: parseTime(d.time_30min),
+      region: region,
+      value: +d[region]
+    }))
+);
+
+const heatmapMax = Math.log(d3.max(heatmap_data.map(d => d.value)) + 1);
+
+const legendMax = d3.max(heatmap_data.map(d => d.value));
+
+const formatDate = d3.timeFormat("%Y-%m-%d");
+
+const days = {
+  day1: heatmap_data.filter(d => formatDate(d.time) === "2020-04-06"),
+  day2: heatmap_data.filter(d => formatDate(d.time) === "2020-04-07"),
+  day3: heatmap_data.filter(d => formatDate(d.time) === "2020-04-08"),
+  day4: heatmap_data.filter(d => formatDate(d.time) === "2020-04-09"),
+  day5: heatmap_data.filter(d => formatDate(d.time) === "2020-04-10"),
+};
+
+```
+
+```js
+
+const color = Plot.scale({
+  color: {
+    type: "log",
+    domain: [1, Math.exp(heatmapMax) - 1],
+    range: ["#f7fbff", "#4292c6", "#08306b"],
+    legend: true
+  }
+});
+
+```
+
+```js
+
+const legend = Plot.legend({
+  color: {
+    type: "linear",
+    domain: [0, 5000],
+    range: [
+      "#f7fbff",
+      "#4292c6",
+      "#08306b",
+      ...Array(9).fill("#08306b"),
+      ...Array(12).fill("#041C32"),
+      ...Array(8).fill("#00122e"),
+    ],
+    label: "Number of Reports"
+  },
+  marginTop: 20,
+  width: 400
+});
+
+
+function heatmap(data, {width} = {}) {
+  return Plot.plot({
+    width,
+    height: 500,
+    marginLeft: 60,
+    marginBottom: 40,
+    x: {
+      type: "band",
+      label: "Time",
+      ticks: d3.timeHour.every(1),
+      tickFormat: d3.timeFormat("%H:%M")
+    },
+    y: {
+      label: "Region",
+      domain: Array.from({length: 19}, (_, i) => String(i + 1))
+    },
+    color,
+    marks: [
+      Plot.cell(data, {
+        x: "time",
+        y: "region",
+        fill: "value",
+        title: d => `Time: ${d3.timeFormat("%Y-%m-%d %H:%M")(d.time)}\nRegion: ${d.region}\nReports: ${d.value}`
+      })
+    ],
+    interaction: {
+      zoom: true,
+      wheel: true,
+      pan: true
+    }
+  });
+}
+
+
+```
+<div>
+  ${legend}
+</div>
+
+<div class="grid grid-cols-1">
+  <div class="card">
+    <h3>Date: April 6, 2020</h3>
+    ${resize((width) => heatmap(days.day1, {width}))}
+  </div>
+    <div class="card">
+    <h3>Date: April 7, 2020</h3>
+    ${resize((width) => heatmap(days.day3, {width}))}
+  </div>
+    <div class="card">
+    <h3>Date: April 8, 2020</h3>
+    ${resize((width) => heatmap(days.day3, {width}))}
+  </div>
+    <div class="card">
+    <h3>Date: April 9, 2020</h3>
+    ${resize((width) => heatmap(days.day4, {width}))}
+  </div>
+    <div class="card">
+    <h3>Date: April 10, 2020</h3>
+    ${resize((width) => heatmap(days.day5, {width}))}
+  </div>
+</div>
+
