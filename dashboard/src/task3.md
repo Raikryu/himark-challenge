@@ -6,6 +6,8 @@ toc: false
 
 # Damage Uncertainty Timeline
 
+This dashboard visualises the change in conditions and uncertainty of reportings overtime. To track damage reporting consistently over time intervals across all days, the mean is used to represent this. Additionally, to measure how uncertainty fluctuates over specific time periods, relevant uncertainty statistics are utilised, in this case the standard deviation is used.
+
 ```js
 
 const reports = await FileAttachment("data/uncertainty.csv").csv({typed: true,
