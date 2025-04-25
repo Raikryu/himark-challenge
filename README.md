@@ -4,7 +4,7 @@
 - Amal Hassan - efyah8@nottingham.ac.uk
 - Ben Assor - psyba5@nottingham.ac.uk
 - Matthew Langley - psyml9@nottingham.ac.uk
-- Siddharth Advani -
+- Siddharth Advani - psysa15@nottingham.ac.uk
 
 
 ## Analysis Task
