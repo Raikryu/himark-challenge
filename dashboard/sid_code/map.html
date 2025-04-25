@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>St. Himark Districts with Damage Scores</title>
+  <!-- Leaflet CSS/JS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+  <!-- D3 -->
+  <script src="https://d3js.org/d3.v6.min.js"></script>
+  <style>
+    #map {
+      width: 100%;
+      height: 600px;
+    }
+    .info {
+      padding: 8px;
+      background: white;
+      border-radius: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h2>St. Himark Districts - Damage Scores</h2>
+  <div id="map"></div>
+
+  <script>
+    // 1. Initialize the Leaflet map (just a plain coordinate space).
+    //    Because your GeoJSON is in pixel coords, not lat/lon,
+    //    you won't see a "real" map. Instead, we'll use a CRS.Simple.
+    var map = L.map('map', {
+      crs: L.CRS.Simple, // Use simple coordinate reference
+      minZoom: -2,
+      center: [0, 0],
+      zoom: 0
+    });
+
+    // 2. We'll guess an image size to define the coordinate bounds.
+    //    If your image is, say, 1000px wide x 800px tall:
+    var width = 1000, height = 800;
+    var bounds = [[0, 0], [height, width]];
+    map.setMaxBounds(bounds);
+    map.fitBounds(bounds);
+
+    // 3. Load BOTH GeoJSON and radar data with d3
+    Promise.all([
+      d3.json("st_himark_color_extracted_pixels23.geojson"),
+      d3.json("radar_chart_updated.json")
+    ]).then(function([geoData, radarData]) {
+      // 3a. Build a dictionary: { location_id -> damage_score }
+      var damageDict = {};
+      radarData.forEach(function(d) {
+        damageDict[d.location] = d.damage_score;
+      });
+
+      // 3b. Merge damage_score into each GeoJSON feature
+      //     (Your GeoJSON has "id" for each feature; radar_data has "location")
+      geoData.features.forEach(function(feature) {
+        var locID = feature.id; // or feature.properties.id
+        if (damageDict[locID] !== undefined) {
+          feature.properties.damage_score = damageDict[locID];
+        } else {
+          feature.properties.damage_score = 0;
+        }
+      });
+
+      // 4. Convert your pixel polygons to Leaflet polygons.
+      //    Because we are in CRS.Simple, we interpret [x, y] as [y, x] in Leaflet.
+      //    So we must invert coordinates for each polygon ring:
+      var height = 800;
+
+function pixelPolygonToLatLngs(coords) {
+  return coords.map(pt => {
+    var x = pt[0]; 
+    var y = pt[1];
+    // Invert Y:
+    var invertedY = height - y;
+    return [invertedY, x];
+  });
+}
+      // We'll create a GeoJSON layer manually
+      var layerGroup = L.layerGroup().addTo(map);
+
+      geoData.features.forEach(function(feature) {
+        var polygons = feature.geometry.coordinates; 
+        // "coordinates" might be an array of arrays if multiple rings
+        // Usually: "Polygon" => coordinates = [ [ [x1,y1], [x2,y2], ... ] ]
+        // We'll assume single ring for demonstration:
+        var ring = polygons[0]; // first ring
+        var latLngRing = pixelPolygonToLatLngs(ring);
+
+        // Create a Leaflet polygon
+        var poly = L.polygon(latLngRing, {
+          color: "white",
+          weight: 2,
+          fillColor: "#3182bd",
+          fillOpacity: 0.6
+        }).addTo(layerGroup);
+
+        // Hover info
+        poly.on("mouseover", function(e) {
+          e.target.setStyle({ fillOpacity: 0.9 });
+          info.update(feature.properties);
+        });
+        poly.on("mouseout", function(e) {
+          e.target.setStyle({ fillOpacity: 0.6 });
+          info.update();
+        });
+      });
+
+      // Info control
+      var info = L.control({ position: 'topright' });
+      info.onAdd = function(map) {
+        this._div = L.DomUtil.create('div', 'info');
+        this.update();
+        return this._div;
+      };
+      info.update = function(props) {
+        if (props) {
+          this._div.innerHTML = `<b>${props.name}</b><br/>Damage Score: ${props.damage_score}`;
+        } else {
+          this._div.innerHTML = "Hover over a district";
+        }
+      };
+      info.addTo(map);
+
+    }).catch(function(err) {
+      console.error("Error loading files:", err);
+    });
+  </script>
+</body>
+</html>

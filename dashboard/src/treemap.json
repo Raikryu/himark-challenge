@@ -1,0 +1,81 @@
+{
+  "name": "StHimark",
+  "children": [
+    {
+      "name": "Palace Hills",
+      "value": 40298.0
+    },
+    {
+      "name": "Northwest",
+      "value": 99633.0
+    },
+    {
+      "name": "Old Town",
+      "value": 485787.0
+    },
+    {
+      "name": "Safe town",
+      "value": 68854.0
+    },
+    {
+      "name": "Southwest",
+      "value": 32421.0
+    },
+    {
+      "name": "Downtown",
+      "value": 51009.0
+    },
+    {
+      "name": "Wilson Forest",
+      "value": 6095.5
+    },
+    {
+      "name": "Scenic Vista",
+      "value": 463903.0
+    },
+    {
+      "name": "Broadview",
+      "value": 273794.0
+    },
+    {
+      "name": "Chapparal",
+      "value": 67704.0
+    },
+    {
+      "name": "Terrapin Springs",
+      "value": 78989.0
+    },
+    {
+      "name": "Pepper Mill",
+      "value": 72564.0
+    },
+    {
+      "name": "Cheddarford",
+      "value": 23704.0
+    },
+    {
+      "name": "Easton",
+      "value": 176081.0
+    },
+    {
+      "name": "Weston",
+      "value": 91392.0
+    },
+    {
+      "name": "Southton",
+      "value": 62730.0
+    },
+    {
+      "name": "Oak Willow",
+      "value": 36236.0
+    },
+    {
+      "name": "East Parton",
+      "value": 101938.0
+    },
+    {
+      "name": "West Parton",
+      "value": 26655.5
+    }
+  ]
+}
