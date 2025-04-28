@@ -1,6 +1,6 @@
 ---
 theme: dashboard
-title: Region Conditions and Uncertainty Overtime
+title: Task 3
 toc: false
 ---
 
@@ -127,25 +127,25 @@ function heatmap(data, {width} = {}) {
 
 <style>
   #plot-wrapper {
-    width: 100%;       
+    width: 100%;
     display: flex;
     flex-direction: column;
-    align-items: center;    
+    align-items: center;
 
   }
 
   #dropdown-container {
-    width: 100%;       
-    max-width: 400px;    
-    margin-bottom: 0px; 
-    text-align: center; 
+    width: 100%;
+    max-width: 400px;
+    margin-bottom: 0px;
+    text-align: center;
   }
 
   #plot-container {
-    width: 100%;         
-    max-width: 1000px;   
-    margin: 0 auto;      
-    height: 600px;       
+    width: 100%;
+    max-width: 1000px;
+    margin: 0 auto;
+    height: 600px;
   }
 </style>
 
@@ -352,13 +352,13 @@ const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
 
 const bubbleData = uncertaintyData.flatMap(d =>
   Object.keys(d)
-    .filter(key => key !== "location" && key !== "time_5min") 
+    .filter(key => key !== "location" && key !== "time_5min")
     .map(damageType => ({
       time: parseTime(d.time_5min),
       location: d.location,
       damageType: damageType,
       value: d[damageType],
-      size: d[damageType],  
+      size: d[damageType],
     }))
 );
 
@@ -385,7 +385,7 @@ let selectedDamageType = damageTypes[0];
 function updatePlot() {
   selectedDamageType = d3.select("#damage-type-selector").property("value");
 
-  d3.select("#plot-container").html(""); 
+  d3.select("#plot-container").html("");
 
   const plot = Plot.plot({
     width: 1000,
@@ -400,7 +400,7 @@ function updatePlot() {
     },
     y: {
       label: "Location",
-      domain: Array.from({ length: 19 }, (_, i) => i + 1) 
+      domain: Array.from({ length: 19 }, (_, i) => i + 1)
     },
     color: { scheme: "category10" },
     marks: [
