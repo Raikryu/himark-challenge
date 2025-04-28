@@ -19,8 +19,8 @@
 
     // 3. Load both GeoJSON and radar data using D3.
     Promise.all([
-       FileAttachment("st_himark_color_extracted_pixels_with_update2.geojson").json(),
-      FileAttachment("radar_chart_data.json").json()
+       FileAttachment("data/st_himark_color_extracted_pixels_with_update2.geojson").json(),
+      FileAttachment("data/radar_chart_data.json").json()
     ]).then(function([geoData, radarData]) {
 
       // Build a dictionary: key by region name (ensure both files use the same key).

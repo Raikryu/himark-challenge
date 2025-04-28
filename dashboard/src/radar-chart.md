@@ -26,7 +26,7 @@ const metricSelect = document.getElementById("metricSelect");
   const ctx = canvas.getContext("2d");
 
   // 2. Load data
-  const data = await FileAttachment("radar_chart_data.json").json();
+  const data = await FileAttachment("data/radar_chart_data.json").json();
   console.log("Radar data loaded:", data);
 
   // 3. Create initial dataset
@@ -110,7 +110,7 @@ const metricSelect = document.getElementById("metricSelect");
 
   // 6. The update function
   function updateChartMetric(metric) {
-    const chart = window.myRadarChart; 
+    const chart = window.myRadarChart;
     chart.data.datasets[0].label = metricDisplayName(metric);
     chart.data.datasets[0].data = data.map(d => d[metric]);
     chart.update();
