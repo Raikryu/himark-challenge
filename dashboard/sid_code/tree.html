@@ -36,8 +36,8 @@
     .attr("height", height);
 
   // Load the JSON data (make sure treemap.json is in the same folder)
-  d3.json("treemap.json").then(data => {
-    
+  d3.json("data/treemap.json").then(data => {
+
     // Convert the data into a hierarchical structure
     const root = d3.hierarchy(data)
       .sum(d => d.value); // use the 'value' property to determine rectangle size
