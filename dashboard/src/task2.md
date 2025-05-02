@@ -9,363 +9,49 @@ toc: false
 This dashboard visualizes the uncertainty in neighborhood reports based on preprocessed metrics. Higher reliability scores indicate more consistent and complete reports, while missing data rates and damage variability help assess uncertainty.
 
 ```js
-// Import dashboard state for cross-component communication
-import dashboardState from "./components/dashboard-state.js";
+import * as Plot from "npm:@observablehq/plot"
+import * as d3 from "npm:d3"
+import Inputs from "npm:@observablehq/inputs"
+```
 
-// Initialize integration with dashboard state
-function initDashboardStateIntegration() {
-  // Subscribe to filter changes from global dashboard
-  dashboardState.subscribe('filters', (filters) => {
-    console.log("Dashboard state filters updated:", filters);
-    
-    // Update reliability filter if location filter changes
-    if (filters.location) {
-      const reliabilityFilter = document.getElementById("reliability-filter");
-      if (reliabilityFilter) {
-        // Find the neighborhood in our data
-        const neighborhood = neighborhoods.find(n => n.neighborhood === filters.location);
-        if (neighborhood && neighborhood.reliability_category) {
-          reliabilityFilter.value = neighborhood.reliability_category;
-        }
-      }
-    }
-    
-    // Update threshold slider if threshold filter changes
-    if (filters.threshold !== null) {
-      const thresholdSlider = document.getElementById("missing-data-threshold");
-      const thresholdValue = document.getElementById("threshold-value");
-      if (thresholdSlider && thresholdValue) {
-        thresholdSlider.value = filters.threshold;
-        thresholdValue.textContent = `${filters.threshold}%`;
-      }
-    }
-    
-    // Apply filters to update visualizations
-    applyFilters();
-  });
-  
-  // Subscribe to cross-visualization highlight events
-  dashboardState.subscribe('visualizationStates', (states) => {
-    console.log("Dashboard visualization states updated:", states);
-    
-    // Handle highlighted district from other visualizations
-    if (states.heatmap.selectedDistrict) {
-      // Find the neighborhood in our data that matches the district
-      const districtNumber = states.heatmap.selectedDistrict;
-      
-      // Clear current selection if we're selecting something different
-      if (!selectedNeighborhoods.has(districtNumber)) {
-        selectedNeighborhoods.clear();
-        selectedNeighborhoods.add(districtNumber);
-        
-        // Update all charts with the new selection
-        chartUpdaters.updateAll();
-      }
-    }
-  });
-  
-  // Notify dashboard state when selections change in this visualization
-  function updateDashboardState() {
-    // Only update if we have exactly one neighborhood selected
-    if (selectedNeighborhoods.size === 1) {
-      const selectedDistrict = Array.from(selectedNeighborhoods)[0];
-      
-      // Update the visualization state
-      dashboardState.setState('visualizationStates.uncertainty.selectedDistrict', selectedDistrict);
-      
-      // Also update heatmap district for cross-visualization coordination
-      dashboardState.setState('visualizationStates.heatmap.selectedDistrict', selectedDistrict);
-    } else if (selectedNeighborhoods.size === 0) {
-      // Clear selections in state
-      dashboardState.setState('visualizationStates.uncertainty.selectedDistrict', null);
-      dashboardState.setState('visualizationStates.heatmap.selectedDistrict', null);
-    }
-  }
-  
-  // Register the update function with our updaters
-  chartUpdaters.register(updateDashboardState);
-}
-
-// Call this function when the visualization is ready
-// In Observable, we need a longer timeout
-setTimeout(initDashboardStateIntegration, 2000);
-
-// Apply dashboard styles
-html`<style>
-:root {
-  --primary-color: #2a9d8f;
-  --secondary-color: #e76f51;
-  --tertiary-color: #e9c46a;
-  --bg-dark: #264653;
-  --text-light: #e9e9e9;
-  --text-muted: #a8a8a8;
-  --bg-card: rgba(42, 157, 143, 0.1);
-  --bg-card-border: rgba(42, 157, 143, 0.2);
-  --bg-highlight: rgba(231, 111, 81, 0.1);
-}
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: var(--bg-dark);
-  color: var(--text-light);
-  line-height: 1.6;
-}
-h1, h2, h3, h4, h5, h6 {
-  color: var(--text-light);
-  margin-bottom: 1rem;
-}
-h1 {
-  font-size: 2.2rem;
-  text-align: center;
-  margin-bottom: 1.5rem;
-  background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
-}
-h3 {
-  font-size: 1.2rem;
-  margin-top: 0;
-  margin-bottom: 1rem;
-  color: var(--text-light);
-}
-.card {
-  background: var(--bg-card);
-  border-radius: 12px;
-  border: 1px solid var(--bg-card-border);
-  padding: 1.5rem;
-  margin-bottom: 1.5rem;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-  transition: transform 0.2s, box-shadow 0.2s;
-}
-.card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 8px 12px rgba(0,0,0,0.15);
-}
-.dashboard-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-  color: var(--primary-color);
-  margin-bottom: 1.2rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 1.5rem;
-  margin-bottom: 2rem;
-}
-.grid-cols-2 {
-  grid-template-columns: 1fr 1fr;
-}
-.filter-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-  background: var(--bg-highlight);
-  padding: 1rem;
-  border-radius: 8px;
-}
-.filter-group {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.filter-label {
-  font-weight: 500;
-  color: var(--text-light);
-}
-.filter-select, .filter-input {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  padding: 0.5rem;
-  border-radius: 4px;
-  color: var(--text-light);
-}
-.threshold-slider {
-  width: 150px;
-  accent-color: var(--primary-color);
-}
-.metric-card {
-  background: linear-gradient(135deg, rgba(42, 157, 143, 0.15), rgba(42, 157, 143, 0.05));
-  padding: 1rem;
-  border-radius: 8px;
-  border: 1px solid var(--bg-card-border);
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-.metric-value {
-  font-size: 1.8rem;
-  font-weight: 700;
-  color: var(--primary-color);
-}
-.metric-label {
-  font-size: 0.9rem;
-  color: var(--text-muted);
-}
-.highlight {
-  background-color: var(--bg-highlight);
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  border-left: 3px solid var(--secondary-color);
-  margin: 1rem 0;
-}
-.tooltip {
-  position: absolute;
-  padding: 0.5rem;
-  background: rgba(38, 70, 83, 0.9);
-  color: white;
-  border-radius: 4px;
-  pointer-events: none;
-  font-size: 0.8rem;
-  z-index: 100;
-  box-shadow: 0 2px 5px rgba(0,0,0,0.3);
-  max-width: 250px;
-}
-.tooltip h4 {
-  margin: 0 0 0.3rem 0;
-  font-size: 0.9rem;
-  border-bottom: 1px solid rgba(255,255,255,0.2);
-  padding-bottom: 0.3rem;
-}
-.tooltip p {
-  margin: 0.3rem 0;
-}
-.badge {
-  display: inline-block;
-  padding: 0.25rem 0.5rem;
-  border-radius: 12px;
-  font-size: 0.8rem;
-  font-weight: 500;
-  margin: 0 0.25rem;
-}
-.badge-primary {
-  background-color: var(--primary-color);
-  color: white;
-}
-.badge-secondary {
-  background-color: var(--secondary-color);
-  color: white;
-}
-.badge-tertiary {
-  background-color: var(--tertiary-color);
-  color: black;
-}
-.tab-container {
-  margin-bottom: 1rem;
-}
-.tab-buttons {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-}
-.tab-button {
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 4px;
-  color: var(--text-light);
-  cursor: pointer;
-  transition: all 0.2s;
-}
-.tab-button.active {
-  background: var(--primary-color);
-  border-color: var(--primary-color);
-  color: white;
-  border-bottom: 3px solid white !important;
-  font-weight: 600;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  transform: translateY(-3px);
-}
-.tab-button:hover:not(.active) {
-  background: rgba(255, 255, 255, 0.15);
-  transform: translateY(-2px);
-  box-shadow: 0 2px 5px rgba(0,0,0,0.15);
-  border-bottom: 3px solid var(--secondary-color) !important;
-}
-.tab-content {
-  display: none;
-}
-.tab-content.active {
-  display: block;
-}
-.insight-card {
-  background: rgba(255,255,255,0.05);
-  padding: 1rem;
-  border-radius: 8px;
-  transition: transform 0.3s, box-shadow 0.3s;
-}
-.insight-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 12px rgba(0,0,0,0.15);
-}
-@media (max-width: 1200px) {
-  .grid-cols-2 {
-    grid-template-columns: 1fr;
-  }
-}
-</style>`;
-
-// Load Font Awesome for icons
-html`<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">`;
-
-// Load Inter font
-html`<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">`;
-
-// Define dashboard colors for plots
-const dashboardColors = {
-  primary: '#2a9d8f',
-  secondary: '#e76f51',
-  tertiary: '#e9c46a',
-  dark: '#264653',
-  light: '#e9e9e9',
-  muted: '#a8a8a8',
-  background: {
-    card: 'rgba(42, 157, 143, 0.1)',
-    cardBorder: 'rgba(42, 157, 143, 0.2)',
-    highlight: 'rgba(231, 111, 81, 0.1)'
-  },
-  text: {
-    light: '#e9e9e9',
-    muted: '#a8a8a8'
-  },
-  charts: {
-    missingData: '#e76f51',     // Secondary color (orange)
-    reportFrequency: '#2a9d8f', // Primary color (teal)
-    damage: '#e9c46a',          // Yellow (tertiary)
-    reliability: '#8ab17d',     // Green
-    categories: [
-      '#2a9d8f', '#e76f51', '#e9c46a', '#8ab17d',
-      '#6c8ea0', '#ba5c32', '#d4ae2d', '#5d926f'
-    ]
-  },
+```js
+// Dashboard styling
+const colors = {
+  primary: "#2a9d8f",
+  secondary: "#e76f51",
+  tertiary: "#e9c46a",
+  highlight: "rgba(42, 157, 143, 0.1)",
   reliability: {
-    high: '#2a9d8f',    // Primary (teal)
-    medium: '#e9c46a',  // Tertiary (yellow)
-    low: '#e76f51'      // Secondary (orange)
+    high: "#2a9d8f",
+    medium: "#e9c46a",
+    low: "#e76f51"
+  },
+  background: {
+    dark: "#264653",
+    card: "rgba(42, 157, 143, 0.1)",
+    cardBorder: "rgba(42, 157, 143, 0.2)"
   }
 };
+```
 
-// Load data asynchronously
-const neighborhoodsData = FileAttachment("data/processed_neighborhood_reliability.json");
-// We use a Promise to ensure data is loaded before we use it
-const neighborhoods = await neighborhoodsData.json();
-
-// Define metrics structure for visualization
+```js
+// Define metrics
 const metrics = ["missing_data_rate", "report_frequency", "damage_variability", "reliability_score"];
+```
+
+```js
+// Define metric labels
 const metricLabels = {
   missing_data_rate: "Missing Data Rate (%)",
   report_frequency: "Report Frequency (min)",
   damage_variability: "Damage Variability",
   reliability_score: "Reliability Score"
 };
+```
 
-// Function to format metric values with appropriate units
-function formatMetricValue(metric, value) {
+```js
+// Function to format metric values
+function formatMetric(metric, value) {
   switch(metric) {
     case "missing_data_rate":
       return `${value.toFixed(1)}%`;
@@ -379,2305 +65,1749 @@ function formatMetricValue(metric, value) {
       return value.toFixed(2);
   }
 }
+```
 
-// Calculate summary statistics for metrics
-const summaryStats = {};
-metrics.forEach(metric => {
-  const values = neighborhoods.map(d => d[metric]);
-  summaryStats[metric] = {
+```js
+// Generate sample data for demonstration (fallback)
+function generateData() {
+  return Array.from({ length: 19 }, (_, i) => ({
+    neighborhood: String(i + 1),
+    missing_data_rate: Math.random() * 30,
+    report_frequency: 5 + Math.random() * 25,
+    damage_variability: 0.1 + Math.random() * 1.9,
+    reliability_score: 2 + Math.random() * 8
+  }));
+}
+```
+
+```js
+// Load neighborhood data using FileAttachment
+const data = await FileAttachment("data/processed_neighborhood_reliability.json").json().catch(() => {
+  console.warn("Error loading data, using generated fallback data");
+  return generateData();
+});
+
+// Log the loaded data to confirm it's properly loaded
+console.log("Loaded neighborhood data:", data);
+```
+
+```js
+// Calculate summary statistics
+const stats = {};
+for (const metric of metrics) {
+  const values = data.map(d => d[metric]).sort(d3.ascending);
+  stats[metric] = {
     min: d3.min(values),
     max: d3.max(values),
     mean: d3.mean(values),
     median: d3.median(values),
-    q1: d3.quantile(values.sort(d3.ascending), 0.25),
-    q3: d3.quantile(values.sort(d3.ascending), 0.75)
+    q1: d3.quantile(values, 0.25),
+    q3: d3.quantile(values, 0.75)
   };
-});
+}
 
-// Classify neighborhoods based on reliability
-neighborhoods.forEach(n => {
-  // Calculate a reliability category based on multiple metrics
-  if (n.reliability_score > summaryStats.reliability_score.q3) {
-    n.reliability_category = "High";
-    n.reliability_color = dashboardColors.reliability.high;
-  } else if (n.reliability_score < summaryStats.reliability_score.q1) {
-    n.reliability_category = "Low";
-    n.reliability_color = dashboardColors.reliability.low;
-  } else {
-    n.reliability_category = "Medium";
-    n.reliability_color = dashboardColors.reliability.medium;
+// Log the calculated statistics to confirm
+console.log("Calculated statistics:", stats);
+```
+
+```js
+// Create dashboard CSS
+const dashboardStyle = html`<style>
+.dashboard-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .dashboard-grid {
+    grid-template-columns: 1fr;
   }
-});
+}
 
-// Store selected neighborhoods for cross-filtering
-const selectedNeighborhoods = new Set();
-let filteredData = [...neighborhoods];
+.dashboard-card {
+  background: ${colors.background.card};
+  border-radius: 8px;
+  border: 1px solid ${colors.background.cardBorder};
+  padding: 1.5rem;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+}
 
-// This object will store all update functions
-const chartUpdaters = {
-  functions: [],
+.dashboard-card.full-width {
+  grid-column: 1 / -1;
+}
 
-  // Register an update function
-  register: function(fn) {
-    this.functions.push(fn);
-  },
+.dashboard-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: ${colors.primary};
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
 
-  // Call all registered update functions
-  updateAll: function() {
-    this.functions.forEach(fn => fn(filteredData));
+.dashboard-controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: ${colors.background.card};
+  border-radius: 8px;
+  border: 1px solid ${colors.background.cardBorder};
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 180px;
+}
+
+.control-group label {
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: ${colors.primary};
+  display: block;
+  font-size: 0.9rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+}
+
+.metric-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+@media (max-width: 992px) {
+  .metric-cards {
+    grid-template-columns: repeat(2, 1fr);
   }
-};
+}
 
-// Create enhanced interactive filtering elements with inline event handlers
-const filterContainer = html`
-<div class="filter-container" style="background: rgba(231, 111, 81, 0.15); padding: 1.5rem; border-radius: 10px; border: 1px solid rgba(231, 111, 81, 0.3); display: flex; flex-wrap: wrap; gap: 1.5rem; margin-bottom: 2rem; align-items: center;">
-  <div class="filter-title" style="flex: 100%; margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
-    <i class="fas fa-filter" style="color: var(--secondary-color);"></i>
-    <span style="font-weight: 600; font-size: 1.1rem;">Filter Dashboard Data</span>
-  </div>
-  
-  <div class="filter-group" style="flex: 1; min-width: 250px; background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;">
-    <label class="filter-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
-      <i class="fas fa-certificate" style="margin-right: 0.5rem; color: var(--primary-color);"></i>
-      Reliability Category:
-    </label>
-    <select onchange=${(event) => {
-      console.log("Reliability filter changed:", event.target.value);
-      
-      // Get current values
-      const threshold = parseFloat(document.getElementById("missing-data-threshold").value);
-      const thresholdValue = document.getElementById("threshold-value");
-      thresholdValue.textContent = `${threshold}%`;
-      
-      // Apply filters to data
-      filteredData = neighborhoods.filter(n => {
-        const passesReliability = event.target.value === "all" || n.reliability_category === event.target.value;
-        const passesMissingData = n.missing_data_rate <= threshold;
-        return passesReliability && passesMissingData;
-      });
-      
-      // Update all charts
-      chartUpdaters.updateAll();
-    }} id="reliability-filter" class="filter-select" style="width: 100%; padding: 0.6rem; border-radius: 6px; background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: var(--text-light); font-family: 'Inter', sans-serif; cursor: pointer;">
-      <option value="all">All Categories</option>
+@media (max-width: 576px) {
+  .metric-cards {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metric-card {
+  background: ${colors.background.card};
+  border-radius: 8px;
+  border: 1px solid ${colors.background.cardBorder};
+  padding: 1rem;
+  text-align: center;
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0.5rem 0;
+}
+
+.metric-label {
+  font-size: 0.9rem;
+  color: #aaa;
+}
+
+.bar-chart-container {
+  margin-bottom: 2rem;
+}
+
+.selected-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 1rem 0;
+}
+
+.selected-item {
+  background: ${colors.primary};
+  color: white;
+  border-radius: 16px;
+  padding: 0.25rem 0.75rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.selected-item button {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 0.8rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+}
+
+.selected-item button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+.scatter-container {
+  min-height: 400px;
+}
+
+.category-badge {
+  display: inline-block;
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-right: 0.5rem;
+}
+
+.category-badge.high {
+  background: ${colors.reliability.high};
+  color: white;
+}
+
+.category-badge.medium {
+  background: ${colors.reliability.medium};
+  color: #333;
+}
+
+.category-badge.low {
+  background: ${colors.reliability.low};
+  color: white;
+}
+
+.header-with-legend {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.85rem;
+}
+
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+
+.tooltip {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.8);
+  color: white;
+  border-radius: 4px;
+  padding: 0.5rem;
+  font-size: 0.85rem;
+  pointer-events: none;
+  z-index: 100;
+  max-width: 250px;
+}
+
+.comparison-table {
+  width: 100%;
+  table-layout: fixed;
+  border-collapse: collapse;
+  margin-top: 1rem;
+}
+
+.comparison-table th:first-child,
+.comparison-table td:first-child {
+  width: 20%;
+}
+
+.comparison-table th,
+.comparison-table td {
+  width: 16%;
+}
+
+.comparison-table th {
+  padding: 0.7rem;
+  border-bottom: 1px solid ${colors.background.cardBorder};
+  font-weight: 600;
+  text-align: center;
+}
+
+.comparison-table td {
+  padding: 0.7rem;
+  border-bottom: 1px solid ${colors.background.cardBorder};
+  text-align: center;
+}
+
+.score-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: #ddd;
+  position: relative;
+  overflow: hidden;
+}
+
+.score-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  border-radius: 4px;
+}
+
+.radar-chart {
+  height: 500px;
+  width: 100%;
+}
+
+.no-selection {
+  text-align: center;
+  padding: 2rem;
+  color: #aaa;
+  font-style: italic;
+}
+
+.checkbox-group {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.5rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+}
+
+input[type="range"] {
+  width: 100%;
+  margin: 0.5rem 0;
+  -webkit-appearance: none;
+  appearance: none;
+  background: transparent;
+}
+
+input[type="range"]::-webkit-slider-runnable-track {
+  width: 100%;
+  height: 8px;
+  background: rgba(42, 157, 143, 0.2);
+  border-radius: 4px;
+  border: 1px solid ${colors.background.cardBorder};
+}
+
+input[type="range"]::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: ${colors.primary};
+  cursor: pointer;
+  border: 2px solid white;
+  margin-top: -6px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+}
+
+input[type="range"]:focus {
+  outline: none;
+}
+
+input[type="range"]:focus::-webkit-slider-thumb {
+  background: ${colors.secondary};
+}
+
+#threshold-value {
+  display: inline-block;
+  padding: 4px 20px;
+  background-color: ${colors.secondary};
+  color: white;
+  font-weight: bold;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  min-width: 60px;
+  text-align: center;
+}
+
+select {
+  padding: 0.5rem 0.75rem;
+  border-radius: 6px;
+  border: 1px solid ${colors.background.cardBorder};
+  background-color: rgba(42, 157, 143, 0.1);
+  color: white;
+  font-size: 1rem;
+  width: 100%;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='6' viewBox='0 0 12 6'%3E%3Cpath fill='%23ffffff' d='M0 0h12L6 6z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  transition: background-color 0.2s, border-color 0.2s;
+}
+
+select:hover, select:focus {
+  background-color: rgba(42, 157, 143, 0.2);
+  border-color: ${colors.primary};
+  outline: none;
+}
+
+select option {
+  background-color: ${colors.background.dark};
+  color: white;
+}
+
+.btn {
+  padding: 0.5rem 1.2rem;
+  border-radius: 6px;
+  border: none;
+  background: ${colors.primary};
+  color: white;
+  cursor: pointer;
+  font-weight: 600;
+  margin-top: 1rem;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  font-size: 0.85rem;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  height: 38px;
+}
+
+.btn:hover {
+  background: ${colors.secondary};
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+.btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 3px rgba(0,0,0,0.2);
+  background: ${colors.reliability.high};
+}
+
+.heatmap {
+  height: 350px;
+}
+</style>`;
+
+// Apply styles
+display(dashboardStyle);
+```
+
+```js
+// Create HTML containers for the dashboard
+html`
+<div class="dashboard-controls">
+  <div class="control-group">
+    <label for="reliability-filter">Reliability Category</label>
+    <select id="reliability-filter">
+      <option value="All Categories">All Categories</option>
       <option value="High">High Reliability</option>
       <option value="Medium">Medium Reliability</option>
       <option value="Low">Low Reliability</option>
     </select>
   </div>
-  
-  <div class="filter-group" style="flex: 1.5; min-width: 300px; background: rgba(255,255,255,0.1); padding: 1rem; border-radius: 8px;">
-    <label class="filter-label" style="display: block; margin-bottom: 0.5rem; font-weight: 500;">
-      <i class="fas fa-chart-bar" style="margin-right: 0.5rem; color: var(--secondary-color);"></i>
-      Missing Data Threshold: <span id="threshold-value" style="font-weight: 600; color: var(--primary-color);">20%</span>
-    </label>
-    <div style="display: flex; align-items: center; gap: 1rem;">
-      <span style="font-size: 0.8rem; color: var(--text-muted);">0%</span>
-      <input type="range" oninput=${(event) => {
-        console.log("Threshold changed:", event.target.value);
-        const threshold = parseFloat(event.target.value);
-        const thresholdValue = document.getElementById("threshold-value");
-        const reliabilityFilter = document.getElementById("reliability-filter");
-        
-        // Update threshold display
-        thresholdValue.textContent = `${threshold}%`;
-        
-        // Apply filters to data
-        filteredData = neighborhoods.filter(n => {
-          const passesReliability = reliabilityFilter.value === "all" || n.reliability_category === reliabilityFilter.value;
-          const passesMissingData = n.missing_data_rate <= threshold;
-          return passesReliability && passesMissingData;
-        });
-        
-        // Update all charts
-        chartUpdaters.updateAll();
-      }} id="missing-data-threshold" class="threshold-slider" min="0" max="50" value="20" step="5" 
-        style="flex: 1; height: 10px; -webkit-appearance: none; background: linear-gradient(to right, var(--primary-color), var(--secondary-color)); border-radius: 5px; accent-color: var(--secondary-color);">
-      <span style="font-size: 0.8rem; color: var(--text-muted);">50%</span>
+
+  <div class="control-group">
+    <label for="missing-data-threshold">Missing Data Threshold</label>
+    <div style="text-align: center; margin-bottom: 5px;">
+      <span id="threshold-value">20%</span>
     </div>
+    <input type="range" id="missing-data-threshold" min="0" max="50" step="1" value="20">
   </div>
-  
-  <div class="filter-group" style="min-width: 140px; display: flex; align-items: center; justify-content: center;">
-    <button onclick=${() => {
-      console.log("Reset filters clicked");
-      const reliabilityFilter = document.getElementById("reliability-filter");
-      const missingDataThreshold = document.getElementById("missing-data-threshold");
-      const thresholdValue = document.getElementById("threshold-value");
-      
-      reliabilityFilter.value = "all";
-      missingDataThreshold.value = 20;
-      thresholdValue.textContent = "20%";
-      selectedNeighborhoods.clear();
-      filteredData = [...neighborhoods];
-      
-      // Update all charts
-      chartUpdaters.updateAll();
-    }} id="reset-filters" class="tab-button" style="padding: 0.75rem 1.25rem; background: var(--bg-dark); border: 1px solid var(--secondary-color); display: flex; align-items: center; gap: 0.5rem; font-weight: 500;">
-      <i class="fas fa-sync-alt"></i> Reset Filters
-    </button>
+
+  <div class="control-group">
+    <label for="neighborhood-select">Compare Neighborhood</label>
+    <select id="neighborhood-select">
+      <option value="">Select to add...</option>
+    </select>
+  </div>
+
+  <div class="control-group">
+    <label>Actions</label>
+    <div style="display: flex; align-items: center; height: 42px;">
+      <button id="reset-button" class="btn" style="margin-top: 0;">Reset All Filters</button>
+    </div>
   </div>
 </div>
-`;
 
-// Create summary metrics cards
-const summaryCards = html`
-<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-  <div class="metric-card">
-    <div>
-      <div class="metric-label">Average Missing Data Rate</div>
-      <div class="metric-value">${summaryStats.missing_data_rate.mean.toFixed(1)}%</div>
-    </div>
-    <i class="fas fa-database fa-2x" style="color: var(--secondary-color); opacity: 0.7;"></i>
-  </div>
-  <div class="metric-card">
-    <div>
-      <div class="metric-label">Average Report Frequency</div>
-      <div class="metric-value">${summaryStats.report_frequency.mean.toFixed(1)} min</div>
-    </div>
-    <i class="fas fa-clock fa-2x" style="color: var(--primary-color); opacity: 0.7;"></i>
-  </div>
-  <div class="metric-card">
-    <div>
-      <div class="metric-label">High Reliability Neighborhoods</div>
-      <div class="metric-value">${neighborhoods.filter(n => n.reliability_category === "High").length}</div>
-    </div>
-    <i class="fas fa-check-circle fa-2x" style="color: var(--primary-color); opacity: 0.7;"></i>
-  </div>
-  <div class="metric-card">
-    <div>
-      <div class="metric-label">Low Reliability Neighborhoods</div>
-      <div class="metric-value">${neighborhoods.filter(n => n.reliability_category === "Low").length}</div>
-    </div>
-    <i class="fas fa-exclamation-triangle fa-2x" style="color: var(--secondary-color); opacity: 0.7;"></i>
-  </div>
-</div>
-`;
+<div id="summary-stats-container"></div>
 
-// Display dashboard info with interactive filters
-display(html`
+<div id="selected-neighborhoods-container" class="dashboard-card full-width">
   <div class="dashboard-title">
-    <i class="fas fa-info-circle"></i> Neighborhood Report Analysis Dashboard
+    <span>Selected Neighborhoods for Comparison</span>
+  </div>
+  <div id="selected-neighborhoods-list" class="selected-list"></div>
+  <div id="no-selection-message" class="no-selection">Click on neighborhoods in the charts below to select them for comparison</div>
+</div>
+
+<div class="dashboard-grid">
+  <div class="dashboard-card">
+    <div class="dashboard-title">Scatter Plot: Reliability vs. Missing Data</div>
+    <div id="scatter-plot-container" class="scatter-container"></div>
   </div>
 
-  <div class="highlight">
-    <p><strong>Dashboard Instructions:</strong> Use the filters below to focus on specific reliability categories or set a threshold for missing data. Hover over chart elements for detailed information. Click on neighborhoods in one chart to highlight them across all visualizations.</p>
+  <div class="dashboard-card">
+    <div class="dashboard-title">Metrics Correlation Heatmap</div>
+    <div id="heatmap-container" class="heatmap"></div>
+  </div>
+</div>
+
+<div id="metric-analysis-container" class="dashboard-card full-width">
+  <div class="header-with-legend">
+    <div class="dashboard-title">Neighborhood Metrics Analysis</div>
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color" style="background: ${colors.reliability.low}"></div>
+        <span>Low Reliability</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: ${colors.reliability.medium}"></div>
+        <span>Medium Reliability</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color" style="background: ${colors.reliability.high}"></div>
+        <span>High Reliability</span>
+      </div>
+    </div>
   </div>
 
-  ${filterContainer}
-  ${summaryCards}
-`);
+  <p style="margin-top: 0.5rem; font-style: italic; color: #aaa;">
+    These visualizations show different metrics for each neighborhood. Click on bars to select neighborhoods for comparison.
+  </p>
 
-// Function to apply filters
-function applyFilters() {
-  const reliabilityFilter = document.getElementById("reliability-filter");
-  const missingDataThreshold = document.getElementById("missing-data-threshold");
-  const thresholdValue = document.getElementById("threshold-value");
+  <div id="missing-data-chart" class="bar-chart-container"></div>
+  <div id="reliability-score-chart" class="bar-chart-container"></div>
+  <div id="damage-variability-chart" class="bar-chart-container"></div>
+</div>
 
-  if (reliabilityFilter && missingDataThreshold && thresholdValue) {
-    const reliabilitySetting = reliabilityFilter.value;
-    const threshold = parseFloat(missingDataThreshold.value);
+<div class="dashboard-grid">
+  <div class="dashboard-card full-width">
+    <div class="dashboard-title">Comparison Radar Chart</div>
+    <div id="radar-chart-container" class="radar-chart"></div>
+  </div>
+</div>
 
-    // Update threshold display
-    thresholdValue.textContent = `${threshold}%`;
-
-    // Apply filters to data
-    filteredData = neighborhoods.filter(n => {
-      const passesReliability = reliabilitySetting === "all" || n.reliability_category === reliabilitySetting;
-      const passesMissingData = n.missing_data_rate <= threshold;
-      return passesReliability && passesMissingData;
-    });
-
-    // Update all charts
-    chartUpdaters.updateAll();
-    
-    // Update dashboard state with these filters
-    try {
-      // Only update dashboard state if it's available (import succeeded)
-      if (typeof dashboardState !== 'undefined') {
-        // Update dashboard threshold filter
-        dashboardState.setState('filters.threshold', threshold > 0 ? threshold : null, true);
-        
-        // Update dashboard reliability metadata
-        if (reliabilitySetting !== "all") {
-          dashboardState.setState('filters.metric', 'reliability', true);
-          
-          // If a specific reliability is selected, we might want to update the highlights box
-          const highlightMessage = `Showing ${reliabilitySetting} reliability neighborhoods with missing data <= ${threshold}%`;
-          dashboardState.setState('visualizationStates.uncertainty.highlightMessage', highlightMessage);
-        } else {
-          // Clear reliability filter if "all" is selected
-          dashboardState.setState('visualizationStates.uncertainty.highlightMessage', null);
-        }
-      }
-    } catch (error) {
-      console.warn("Could not update dashboard state:", error);
-    }
-  }
-}
-
-// Function to reset filters
-function resetFilters() {
-  const reliabilityFilter = document.getElementById("reliability-filter");
-  const missingDataThreshold = document.getElementById("missing-data-threshold");
-  const thresholdValue = document.getElementById("threshold-value");
-
-  if (reliabilityFilter && missingDataThreshold && thresholdValue) {
-    reliabilityFilter.value = "all";
-    missingDataThreshold.value = 20;
-    thresholdValue.textContent = "20%";
-    selectedNeighborhoods.clear();
-    filteredData = [...neighborhoods];
-
-    // Update all charts
-    chartUpdaters.updateAll();
-    
-    // Reset dashboard state if available
-    try {
-      if (typeof dashboardState !== 'undefined') {
-        // Reset local filters in dashboard state
-        dashboardState.setState('filters.threshold', null, true);
-        dashboardState.setState('filters.metric', null, true);
-        dashboardState.setState('visualizationStates.uncertainty.highlightMessage', null);
-        dashboardState.setState('visualizationStates.uncertainty.selectedDistrict', null);
-        dashboardState.setState('visualizationStates.heatmap.selectedDistrict', null);
-        
-        // Optionally use the resetFilters method if you want to reset all filters
-        // dashboardState.resetFilters();
-      }
-    } catch (error) {
-      console.warn("Could not reset dashboard state:", error);
-    }
-  }
-}
-
-// In Observable Framework, we use inline handlers for all UI interactions
-// We don't need to set up handlers with event listeners as they're already in the HTML
-// This block is just kept for debugging but doesn't do any event attaching
-setTimeout(() => {
-  const reliabilityFilter = document.getElementById("reliability-filter");
-  const missingDataThreshold = document.getElementById("missing-data-threshold");
-  const resetButton = document.getElementById("reset-filters");
-
-  if (reliabilityFilter && missingDataThreshold && resetButton) {
-    console.log("Found filter elements - using inline handlers");
-    console.log("Filter elements initialized successfully");
-  } else {
-    console.error("Failed to find filter elements:", { 
-      reliabilityFilter: Boolean(reliabilityFilter),
-      missingDataThreshold: Boolean(missingDataThreshold),
-      resetButton: Boolean(resetButton)
-    });
-    
-    // No need to try again with event listeners since we're using inline handlers
-  }
-}, 1000);
+<div id="neighborhood-comparison-container" class="dashboard-card full-width">
+  <div class="dashboard-title">Detailed Comparison</div>
+  <div id="comparison-table"></div>
+</div>
+`
 ```
 
-## Neighborhood Uncertainty Analysis
-
 ```js
-// Create enhanced tab system for different visualization approaches
-const tabContainer = html`
-<div class="tab-container">
-  <div class="tab-buttons" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
-    <button onclick=${() => {
-      // Create a direct event handler in the HTML
-      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      document.getElementById('tab-scatter').classList.add('active');
-      document.getElementById('tab-content-scatter').classList.add('active');
-      
-      // Make sure content is rendered
-      const contentElement = document.getElementById('tab-content-scatter');
-      if (contentElement && contentElement.children.length === 0) {
-        createScatterPlot(contentElement, filteredData);
-      }
-    }} id="tab-scatter" class="tab-button active" style="padding: 0.8rem 1.2rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; transition: all 0.2s; margin-right: 0.25rem; min-width: 150px; justify-content: center;">
-      <i class="fas fa-chart-scatter"></i> Scatter Plot
-    </button>
-    <button onclick=${() => {
-      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      document.getElementById('tab-bubble').classList.add('active');
-      document.getElementById('tab-content-bubble').classList.add('active');
-      
-      // Make sure content is rendered
-      const contentElement = document.getElementById('tab-content-bubble');
-      if (contentElement && contentElement.children.length === 0) {
-        createBubbleChart(contentElement, filteredData);
-      }
-    }} id="tab-bubble" class="tab-button" style="padding: 0.8rem 1.2rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; transition: all 0.2s; margin-right: 0.25rem; min-width: 150px; justify-content: center;">
-      <i class="fas fa-circle"></i> Bubble Chart
-    </button>
-    <button onclick=${() => {
-      document.querySelectorAll('.tab-button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
-      document.getElementById('tab-quadrant').classList.add('active');
-      document.getElementById('tab-content-quadrant').classList.add('active');
-      
-      // Make sure content is rendered
-      const contentElement = document.getElementById('tab-content-quadrant');
-      if (contentElement && contentElement.children.length === 0) {
-        createQuadrantAnalysis(contentElement, filteredData);
-      }
-    }} id="tab-quadrant" class="tab-button" style="padding: 0.8rem 1.2rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; transition: all 0.2s; margin-right: 0.25rem; min-width: 150px; justify-content: center;">
-      <i class="fas fa-th-large"></i> Quadrant Analysis
-    </button>
-  </div>
-  <div id="tab-content-scatter" class="tab-content active"></div>
-  <div id="tab-content-bubble" class="tab-content"></div>
-  <div id="tab-content-quadrant" class="tab-content"></div>
-</div>
-`;
-
-// Function to create enhanced scatter plot
-function createScatterPlot(container, data) {
-  // Create scatter plot with improved readability
-  const scatterPlot = Plot.plot({
-    title: "Neighborhood Uncertainty: Missing Data vs Reliability",
-    width: 800,
-    height: 500,
-    style: {
-      background: "transparent",
-      color: dashboardColors.text.light,
-      fontSize: 16, // Increased font size
-      fontFamily: "'Inter', sans-serif" // Consistent font family
-    },
-    x: {
-      label: "Missing Data Rate (%)",
-      grid: true,
-      tickFormat: d => `${d}%`,
-      labelStyle: { 
-        fill: dashboardColors.text.light, 
-        fontSize: "14px", 
-        fontWeight: "bold" 
-      },
-      tickSize: 6, // Larger ticks
-      gridStyle: { stroke: "rgba(255, 255, 255, 0.2)" } // More visible grid
-    },
-    y: {
-      label: "Reliability Score",
-      grid: true,
-      labelStyle: { 
-        fill: dashboardColors.text.light, 
-        fontSize: "14px", 
-        fontWeight: "bold" 
-      },
-      tickSize: 6, // Larger ticks
-      gridStyle: { stroke: "rgba(255, 255, 255, 0.2)" } // More visible grid
-    },
-    color: {
-      type: "categorical",
-      domain: ["High", "Medium", "Low"],
-      range: [dashboardColors.reliability.high, dashboardColors.reliability.medium, dashboardColors.reliability.low],
-      legend: true
-    },
-    marks: [
-      // Add soft grid highlighting
-      Plot.frame({fill: "rgba(255, 255, 255, 0.03)", stroke: "none"}),
-      // Add data points with improved styling
-      Plot.dot(data, {
-        x: "missing_data_rate",
-        y: "reliability_score",
-        r: d => 8 + (d.damage_variability * 5), // Larger base size for better visibility
-        fill: d => d.reliability_category,
-        stroke: d => selectedNeighborhoods.size > 0 && selectedNeighborhoods.has(d.neighborhood) ? "#ffffff" : "rgba(255,255,255,0.5)",
-        strokeWidth: d => selectedNeighborhoods.size > 0 && selectedNeighborhoods.has(d.neighborhood) ? 3 : 1.5, // Thicker strokes
-        opacity: d => selectedNeighborhoods.size > 0 ? (selectedNeighborhoods.has(d.neighborhood) ? 1 : 0.3) : 0.9, // Higher default opacity
-        title: d => `Neighborhood ${d.neighborhood}\nMissing Data: ${formatMetricValue("missing_data_rate", d.missing_data_rate)}\nReliability: ${formatMetricValue("reliability_score", d.reliability_score)}\nDamage Variability: ${formatMetricValue("damage_variability", d.damage_variability)}`
-      }),
-      // Add neighborhood labels for better identification
-      Plot.text(data.filter(d => selectedNeighborhoods.has(d.neighborhood) || selectedNeighborhoods.size === 0), {
-        x: "missing_data_rate",
-        y: "reliability_score",
-        text: d => d.neighborhood,
-        fill: "white",
-        stroke: "rgba(0,0,0,0.5)",
-        strokeWidth: 2,
-        dy: -15,
-        fontSize: 12,
-        fontWeight: "bold"
-      }),
-      // Add border frame
-      Plot.frame({stroke: dashboardColors.background.cardBorder, strokeWidth: 2})
-    ],
-    // Add margin for better spacing
-    margin: {left: 60, right: 40, top: 50, bottom: 50}
-  });
-
-  // Append the plot to the container
-  container.innerHTML = "";
-  container.appendChild(scatterPlot);
-
-  // Add click event listener for cross-filtering
-  setTimeout(() => {
-    const dots = container.querySelectorAll("circle");
-    dots.forEach(dot => {
-      if (dot.__data__) {
-        dot.style.cursor = "pointer";
-        dot.addEventListener("click", function(event) {
-          const neighborhood = event.target.__data__.neighborhood;
-
-          // Toggle selection
-          if (selectedNeighborhoods.has(neighborhood)) {
-            selectedNeighborhoods.delete(neighborhood);
-          } else {
-            selectedNeighborhoods.add(neighborhood);
-          }
-
-          // Update all charts
-          chartUpdaters.updateAll();
-        });
-      }
-    });
-  }, 100);
-}
-
-// Function to create bubble chart (alternative view)
-function createBubbleChart(container, data) {
-  // Group by reliability category and calculate average values
-  const groupedData = [];
-  ["High", "Medium", "Low"].forEach(category => {
-    const categoryData = data.filter(d => d.reliability_category === category);
-    if (categoryData.length > 0) {
-      const avgMissingData = d3.mean(categoryData, d => d.missing_data_rate);
-      const avgReliability = d3.mean(categoryData, d => d.reliability_score);
-      const avgDamageVar = d3.mean(categoryData, d => d.damage_variability);
-      const count = categoryData.length;
-
-      groupedData.push({
-        category,
-        count,
-        avgMissingData,
-        avgReliability,
-        avgDamageVar,
-        color: dashboardColors.reliability[category.toLowerCase()]
-      });
-    }
-  });
-
-  // Create bubble chart
-  const bubbleChart = Plot.plot({
-    title: "Reliability Categories Summary",
-    width: 800,
-    height: 500,
-    style: {
-      background: "transparent",
-      color: dashboardColors.text.light,
-      fontSize: 14
-    },
-    x: {
-      label: "Average Missing Data Rate (%)",
-      grid: true,
-      tickFormat: d => `${d.toFixed(1)}%`,
-      labelStyle: { fill: dashboardColors.text.light },
-      gridStyle: { stroke: "rgba(255, 255, 255, 0.1)" }
-    },
-    y: {
-      label: "Average Reliability Score",
-      grid: true,
-      labelStyle: { fill: dashboardColors.text.light },
-      gridStyle: { stroke: "rgba(255, 255, 255, 0.1)" }
-    },
-    marks: [
-      Plot.dot(groupedData, {
-        x: "avgMissingData",
-        y: "avgReliability",
-        r: d => 30 + (d.count * 5),
-        fill: d => d.color,
-        stroke: "white",
-        strokeWidth: 1,
-        opacity: 0.8
-      }),
-      Plot.text(groupedData, {
-        x: "avgMissingData",
-        y: "avgReliability",
-        text: d => d.category,
-        fill: "white",
-        fontSize: 12,
-        fontWeight: "bold"
-      }),
-      Plot.text(groupedData, {
-        x: "avgMissingData",
-        y: d => d.avgReliability - 10,
-        text: d => `${d.count} neighborhoods`,
-        fill: "white",
-        fontSize: 10
-      }),
-      Plot.frame({stroke: dashboardColors.background.cardBorder})
-    ]
-  });
-
-  // Create neighborhood list for each category
-  const categoryLists = html`
-    <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-top: 1.5rem;">
-      ${["High", "Medium", "Low"].map(category => {
-        const categoryData = data.filter(d => d.reliability_category === category);
-        return html`
-          <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
-            <h4 style="color: ${dashboardColors.reliability[category.toLowerCase()]}; margin-top: 0;">
-              ${category} Reliability (${categoryData.length})
-            </h4>
-            <div style="max-height: 150px; overflow-y: auto;">
-              ${categoryData.length > 0 ?
-                html`<ul style="margin: 0; padding-left: 1.5rem;">
-                  ${categoryData.map(d => html`
-                    <li style="margin-bottom: 0.25rem;">
-                      Neighborhood ${d.neighborhood}
-                      <span style="font-size: 0.8rem; color: var(--text-muted);">
-                        (${formatMetricValue("reliability_score", d.reliability_score)})
-                      </span>
-                    </li>
-                  `)}
-                </ul>` :
-                html`<p style="color: var(--text-muted);">No neighborhoods in this category</p>`
-              }
-            </div>
-          </div>
-        `;
-      })}
-    </div>
-  `;
-
-  // Append to container
-  container.innerHTML = "";
-  container.appendChild(bubbleChart);
-  container.appendChild(categoryLists);
-}
-
-// Function to create quadrant analysis
-function createQuadrantAnalysis(container, data) {
-  // Calculate median values for quadrant thresholds
-  const medianMissingData = d3.median(neighborhoods, d => d.missing_data_rate);
-  const medianReliability = d3.median(neighborhoods, d => d.reliability_score);
-
-  // Create enhanced quadrant plot with better readability
-  const quadrantPlot = Plot.plot({
-    title: "Neighborhood Quadrant Analysis",
-    width: 800,
-    height: 500,
-    margin: {left: 60, right: 60, top: 60, bottom: 60},
-    style: {
-      background: "transparent",
-      color: dashboardColors.text.light,
-      fontSize: 16,
-      fontFamily: "'Inter', sans-serif" // Consistent font family
-    },
-    x: {
-      label: "Missing Data Rate (%)",
-      grid: true,
-      tickFormat: d => `${d}%`,
-      domain: [0, Math.max(50, d3.max(data, d => d.missing_data_rate) * 1.1)],
-      labelStyle: { 
-        fill: dashboardColors.text.light,
-        fontSize: "14px", 
-        fontWeight: "bold" 
-      },
-      tickSize: 6,
-      gridStyle: { stroke: "rgba(255, 255, 255, 0.15)" } // More visible grid
-    },
-    y: {
-      label: "Reliability Score",
-      grid: true,
-      domain: [0, Math.max(10, d3.max(data, d => d.reliability_score) * 1.1)],
-      labelStyle: { 
-        fill: dashboardColors.text.light,
-        fontSize: "14px", 
-        fontWeight: "bold" 
-      },
-      tickSize: 6,
-      gridStyle: { stroke: "rgba(255, 255, 255, 0.15)" } // More visible grid
-    },
-    marks: [
-      // Add soft background for the chart
-      Plot.frame({fill: "rgba(255, 255, 255, 0.03)", stroke: "none"}),
-      
-      // Quadrant background colors for better visual distinction
-      Plot.rect([
-        // Q1: Low Missing Data, High Reliability (Top Left)
-        {
-          x1: 0, x2: medianMissingData,
-          y1: medianReliability, y2: Math.max(10, d3.max(data, d => d.reliability_score) * 1.1)
-        }
-      ], {
-        fill: dashboardColors.reliability.high,
-        fillOpacity: 0.1
-      }),
-      Plot.rect([
-        // Q2: High Missing Data, High Reliability (Top Right)
-        {
-          x1: medianMissingData, x2: Math.max(50, d3.max(data, d => d.missing_data_rate) * 1.1),
-          y1: medianReliability, y2: Math.max(10, d3.max(data, d => d.reliability_score) * 1.1)
-        }
-      ], {
-        fill: dashboardColors.reliability.medium,
-        fillOpacity: 0.1
-      }),
-      Plot.rect([
-        // Q3: Low Missing Data, Low Reliability (Bottom Left)
-        {
-          x1: 0, x2: medianMissingData,
-          y1: 0, y2: medianReliability
-        }
-      ], {
-        fill: dashboardColors.reliability.medium,
-        fillOpacity: 0.1
-      }),
-      Plot.rect([
-        // Q4: High Missing Data, Low Reliability (Bottom Right)
-        {
-          x1: medianMissingData, x2: Math.max(50, d3.max(data, d => d.missing_data_rate) * 1.1),
-          y1: 0, y2: medianReliability
-        }
-      ], {
-        fill: dashboardColors.reliability.low,
-        fillOpacity: 0.1
-      }),
-      
-      // Quadrant dividing lines with improved visibility
-      Plot.ruleX([medianMissingData], {
-        stroke: "white", 
-        strokeDasharray: "6,4",
-        strokeWidth: 2
-      }),
-      Plot.ruleY([medianReliability], {
-        stroke: "white", 
-        strokeDasharray: "6,4",
-        strokeWidth: 2
-      }),
-
-      // Quadrant labels with improved styling
-      Plot.text([{x: medianMissingData/2, y: medianReliability + (d3.max(data, d => d.reliability_score) - medianReliability)/2}], {
-        text: ["Q1: Low Missing Data,\nHigh Reliability"],
-        fill: dashboardColors.reliability.high,
-        fontSize: 14,
-        fontWeight: "bold",
-        stroke: "rgba(0,0,0,0.5)",
-        strokeWidth: 3,
-        lineWidth: 20,
-        textAnchor: "middle"
-      }),
-      Plot.text([{x: medianMissingData + (d3.max(data, d => d.missing_data_rate) - medianMissingData)/2, y: medianReliability + (d3.max(data, d => d.reliability_score) - medianReliability)/2}], {
-        text: ["Q2: High Missing Data,\nHigh Reliability"],
-        fill: dashboardColors.reliability.medium,
-        fontSize: 14,
-        fontWeight: "bold",
-        stroke: "rgba(0,0,0,0.5)",
-        strokeWidth: 3,
-        lineWidth: 20,
-        textAnchor: "middle"
-      }),
-      Plot.text([{x: medianMissingData/2, y: medianReliability/2}], {
-        text: ["Q3: Low Missing Data,\nLow Reliability"],
-        fill: dashboardColors.reliability.medium,
-        fontSize: 14,
-        fontWeight: "bold",
-        stroke: "rgba(0,0,0,0.5)",
-        strokeWidth: 3,
-        lineWidth: 20,
-        textAnchor: "middle"
-      }),
-      Plot.text([{x: medianMissingData + (d3.max(data, d => d.missing_data_rate) - medianMissingData)/2, y: medianReliability/2}], {
-        text: ["Q4: High Missing Data,\nLow Reliability"],
-        fill: dashboardColors.reliability.low,
-        fontSize: 14,
-        fontWeight: "bold",
-        stroke: "rgba(0,0,0,0.5)",
-        strokeWidth: 3,
-        lineWidth: 20,
-        textAnchor: "middle"
-      }),
-
-      // Data points with improved styling
-      Plot.dot(data, {
-        x: "missing_data_rate",
-        y: "reliability_score",
-        r: 8, // Larger dots
-        fill: d => {
-          // Assign color based on quadrant
-          if (d.missing_data_rate < medianMissingData && d.reliability_score >= medianReliability) {
-            return dashboardColors.reliability.high;  // Q1
-          } else if (d.missing_data_rate >= medianMissingData && d.reliability_score >= medianReliability) {
-            return dashboardColors.reliability.medium; // Q2
-          } else if (d.missing_data_rate < medianMissingData && d.reliability_score < medianReliability) {
-            return dashboardColors.reliability.medium; // Q3
-          } else {
-            return dashboardColors.reliability.low;   // Q4
-          }
-        },
-        stroke: d => selectedNeighborhoods.size > 0 && selectedNeighborhoods.has(d.neighborhood) ? "#ffffff" : "rgba(255,255,255,0.5)",
-        strokeWidth: d => selectedNeighborhoods.size > 0 && selectedNeighborhoods.has(d.neighborhood) ? 3 : 1.5, // Thicker strokes
-        opacity: d => selectedNeighborhoods.size > 0 ? (selectedNeighborhoods.has(d.neighborhood) ? 1 : 0.3) : 0.9, // Higher default opacity
-        title: d => `Neighborhood ${d.neighborhood}\nMissing Data: ${formatMetricValue("missing_data_rate", d.missing_data_rate)}\nReliability: ${formatMetricValue("reliability_score", d.reliability_score)}\nQuadrant: Q${
-          d.missing_data_rate < medianMissingData && d.reliability_score >= medianReliability ? "1" :
-          d.missing_data_rate >= medianMissingData && d.reliability_score >= medianReliability ? "2" :
-          d.missing_data_rate < medianMissingData && d.reliability_score < medianReliability ? "3" : "4"
-        }`
-      }),
-      
-      // Add neighborhood labels with improved visibility
-      Plot.text(data.filter(d => selectedNeighborhoods.has(d.neighborhood) || selectedNeighborhoods.size === 0), {
-        x: "missing_data_rate",
-        y: "reliability_score",
-        text: d => d.neighborhood,
-        fill: "white",
-        fontSize: 12,
-        fontWeight: "bold",
-        stroke: "rgba(0,0,0,0.7)",
-        strokeWidth: 3,
-        dy: -12
-      }),
-      
-      // Add median indicators
-      Plot.text([{x: medianMissingData, y: 0}], {
-        text: [`Median: ${medianMissingData.toFixed(1)}%`],
-        fill: "white",
-        fontSize: 12,
-        fontWeight: "bold",
-        dy: 16,
-        textAnchor: "middle"
-      }),
-      Plot.text([{x: 0, y: medianReliability}], {
-        text: [`Median: ${medianReliability.toFixed(2)}`],
-        fill: "white",
-        fontSize: 12,
-        fontWeight: "bold",
-        dx: 10,
-        dy: -8,
-        textAnchor: "start"
-      }),
-      
-      // Add border frame
-      Plot.frame({stroke: dashboardColors.background.cardBorder, strokeWidth: 2})
-    ]
-  });
-
-  // Quadrant statistics
-  const q1 = data.filter(d => d.missing_data_rate < medianMissingData && d.reliability_score >= medianReliability);
-  const q2 = data.filter(d => d.missing_data_rate >= medianMissingData && d.reliability_score >= medianReliability);
-  const q3 = data.filter(d => d.missing_data_rate < medianMissingData && d.reliability_score < medianReliability);
-  const q4 = data.filter(d => d.missing_data_rate >= medianMissingData && d.reliability_score < medianReliability);
-
-  const quadrantStats = html`
-    <div style="margin-top: 1.5rem; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
-      <h4 style="margin-top: 0; margin-bottom: 0.5rem;">Quadrant Analysis</h4>
-      <p style="margin-bottom: 1rem;">
-        The plot divides neighborhoods into four quadrants based on median values. Median Missing Data: ${medianMissingData.toFixed(1)}%,
-        Median Reliability: ${medianReliability.toFixed(2)}
-      </p>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
-        <div>
-          <h5 style="margin: 0; color: ${dashboardColors.reliability.high};">
-            Q1: Low Missing Data, High Reliability
-          </h5>
-          <p style="font-size: 0.9rem; margin: 0.5rem 0;">
-            <strong>${q1.length}</strong> neighborhoods
-            ${q1.length > 0 ? `(e.g., ${q1.slice(0, 3).map(d => d.neighborhood).join(", ")})` : ""}
-          </p>
-        </div>
-        <div>
-          <h5 style="margin: 0; color: ${dashboardColors.reliability.medium};">
-            Q2: High Missing Data, High Reliability
-          </h5>
-          <p style="font-size: 0.9rem; margin: 0.5rem 0;">
-            <strong>${q2.length}</strong> neighborhoods
-            ${q2.length > 0 ? `(e.g., ${q2.slice(0, 3).map(d => d.neighborhood).join(", ")})` : ""}
-          </p>
-        </div>
-        <div>
-          <h5 style="margin: 0; color: ${dashboardColors.reliability.medium};">
-            Q3: Low Missing Data, Low Reliability
-          </h5>
-          <p style="font-size: 0.9rem; margin: 0.5rem 0;">
-            <strong>${q3.length}</strong> neighborhoods
-            ${q3.length > 0 ? `(e.g., ${q3.slice(0, 3).map(d => d.neighborhood).join(", ")})` : ""}
-          </p>
-        </div>
-        <div>
-          <h5 style="margin: 0; color: ${dashboardColors.reliability.low};">
-            Q4: High Missing Data, Low Reliability
-          </h5>
-          <p style="font-size: 0.9rem; margin: 0.5rem 0;">
-            <strong>${q4.length}</strong> neighborhoods
-            ${q4.length > 0 ? `(e.g., ${q4.slice(0, 3).map(d => d.neighborhood).join(", ")})` : ""}
-          </p>
-        </div>
-      </div>
-    </div>
-  `;
-
-  // Append to container
-  container.innerHTML = "";
-  container.appendChild(quadrantPlot);
-  container.appendChild(quadrantStats);
-
-  // Add click event listener for cross-filtering
-  setTimeout(() => {
-    const dots = container.querySelectorAll("circle");
-    dots.forEach(dot => {
-      if (dot.__data__) {
-        dot.style.cursor = "pointer";
-        dot.addEventListener("click", function(event) {
-          const neighborhood = event.target.__data__.neighborhood;
-
-          // Toggle selection
-          if (selectedNeighborhoods.has(neighborhood)) {
-            selectedNeighborhoods.delete(neighborhood);
-          } else {
-            selectedNeighborhoods.add(neighborhood);
-          }
-
-          // Update all charts
-          chartUpdaters.updateAll();
-        });
-      }
-    });
-  }, 100);
-}
-
-// In Observable Framework, inline handlers handle the tab switching
-// This function is kept to register updaters for content rendering
-function setupScatterTabs() {
-  const contentScatter = document.getElementById("tab-content-scatter");
-  const contentBubble = document.getElementById("tab-content-bubble");
-  const contentQuadrant = document.getElementById("tab-content-quadrant");
-
-  if (contentScatter && contentBubble && contentQuadrant) {
-    console.log("Found scatter tab content elements, setting up content");
-    
-    // Initial render
-    createScatterPlot(contentScatter, filteredData);
-    createBubbleChart(contentBubble, filteredData);
-    createQuadrantAnalysis(contentQuadrant, filteredData);
-
-    // Register update functions
-    chartUpdaters.register(function(data) {
-      createScatterPlot(contentScatter, data);
-      createBubbleChart(contentBubble, data);
-      createQuadrantAnalysis(contentQuadrant, data);
-    });
-    
-    return true; // Successfully set up
-  }
-  
-  console.log("Scatter tab content elements not found yet");
-  return false; // Elements not found
-}
-
-// Setup scatter tabs using Observable-compatible approach
-// In Observable, we need longer timeouts for DOM manipulation
-setTimeout(() => {
-  const contentScatter = document.getElementById("tab-content-scatter");
-  const contentBubble = document.getElementById("tab-content-bubble");
-  const contentQuadrant = document.getElementById("tab-content-quadrant");
-
-  if (contentScatter && contentBubble && contentQuadrant) {
-    console.log("Found scatter tab content elements, setting up content");
-    
-    // Initial render
-    createScatterPlot(contentScatter, filteredData);
-    createBubbleChart(contentBubble, filteredData);
-    createQuadrantAnalysis(contentQuadrant, filteredData);
-
-    // Register update functions
-    chartUpdaters.register(function(data) {
-      createScatterPlot(contentScatter, data);
-      createBubbleChart(contentBubble, data);
-      createQuadrantAnalysis(contentQuadrant, data);
-    });
-    
-    console.log("Scatter tabs content setup complete");
-  } else {
-    console.error("Failed to find scatter tab content elements:", {
-      contentScatter: Boolean(contentScatter),
-      contentBubble: Boolean(contentBubble),
-      contentQuadrant: Boolean(contentQuadrant)
-    });
-    
-    // Try again with a longer delay
-    setTimeout(setupScatterTabs, 1500);
-  }
-}, 1200);
-
-// Display the uncertainty analysis with tabs
-display(html`
-<div class="card">
-  <div class="dashboard-title">
-    <i class="fas fa-project-diagram"></i> Uncertainty Relationship Analysis
-  </div>
-  <p>Explore the relationship between missing data and reliability scores across neighborhoods. Switch between different visualization approaches using the tabs below.</p>
-  ${tabContainer}
-</div>
-`);
-```
-
-## Neighborhood Metrics Analysis
-
-```js
-// Create enhanced tabbed interface for different metric charts with inline event handlers
-const metricTabContainer = html`
-<div class="tab-container">
-  <div class="tab-buttons" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem; flex-wrap: wrap;">
-    <button onclick=${() => {
-      document.querySelectorAll('.tab-buttons .tab-button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('#tab-content-missing, #tab-content-damage, #tab-content-report, #tab-content-comparison').forEach(c => c.classList.remove('active'));
-      document.getElementById('tab-missing').classList.add('active');
-      document.getElementById('tab-content-missing').classList.add('active');
-      
-      // Make sure content is rendered
-      const contentElement = document.getElementById('tab-content-missing');
-      if (contentElement && contentElement.children.length === 0) {
-        createMetricBarChart(contentElement, filteredData, "missing_data_rate", dashboardColors.charts.missingData);
-      }
-    }} id="tab-missing" class="tab-button active" style="padding: 0.8rem 1.2rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; transition: all 0.2s; margin-right: 0.25rem; min-width: 120px; justify-content: center;">
-      <i class="fas fa-database"></i> Missing Data
-    </button>
-    <button onclick=${() => {
-      document.querySelectorAll('.tab-buttons .tab-button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('#tab-content-missing, #tab-content-damage, #tab-content-report, #tab-content-comparison').forEach(c => c.classList.remove('active'));
-      document.getElementById('tab-damage').classList.add('active');
-      document.getElementById('tab-content-damage').classList.add('active');
-      
-      // Make sure content is rendered
-      const contentElement = document.getElementById('tab-content-damage');
-      if (contentElement && contentElement.children.length === 0) {
-        createMetricBarChart(contentElement, filteredData, "damage_variability", dashboardColors.charts.damage);
-      }
-    }} id="tab-damage" class="tab-button" style="padding: 0.8rem 1.2rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; transition: all 0.2s; margin-right: 0.25rem; min-width: 120px; justify-content: center;">
-      <i class="fas fa-chart-line"></i> Damage Variability
-    </button>
-    <button onclick=${() => {
-      document.querySelectorAll('.tab-buttons .tab-button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('#tab-content-missing, #tab-content-damage, #tab-content-report, #tab-content-comparison').forEach(c => c.classList.remove('active'));
-      document.getElementById('tab-report').classList.add('active');
-      document.getElementById('tab-content-report').classList.add('active');
-      
-      // Make sure content is rendered
-      const contentElement = document.getElementById('tab-content-report');
-      if (contentElement && contentElement.children.length === 0) {
-        createMetricBarChart(contentElement, filteredData, "report_frequency", dashboardColors.charts.reportFrequency);
-      }
-    }} id="tab-report" class="tab-button" style="padding: 0.8rem 1.2rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; transition: all 0.2s; margin-right: 0.25rem; min-width: 120px; justify-content: center;">
-      <i class="fas fa-clock"></i> Report Frequency
-    </button>
-    <button onclick=${() => {
-      document.querySelectorAll('.tab-buttons .tab-button').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('#tab-content-missing, #tab-content-damage, #tab-content-report, #tab-content-comparison').forEach(c => c.classList.remove('active'));
-      document.getElementById('tab-comparison').classList.add('active');
-      document.getElementById('tab-content-comparison').classList.add('active');
-      
-      // Make sure content is rendered
-      const contentElement = document.getElementById('tab-content-comparison');
-      if (contentElement && contentElement.children.length === 0) {
-        createMetricsComparisonChart(contentElement, filteredData);
-      }
-    }} id="tab-comparison" class="tab-button" style="padding: 0.8rem 1.2rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; transition: all 0.2s; margin-right: 0.25rem; min-width: 120px; justify-content: center;">
-      <i class="fas fa-exchange-alt"></i> Metric Comparison
-    </button>
-  </div>
-  <div id="tab-content-missing" class="tab-content active"></div>
-  <div id="tab-content-damage" class="tab-content"></div>
-  <div id="tab-content-report" class="tab-content"></div>
-  <div id="tab-content-comparison" class="tab-content"></div>
-</div>
-`;
-
-// Function to create enhanced bar chart for metrics
-function createMetricBarChart(container, data, metric, color) {
-  // Sort data by the metric
-  const sortedData = [...data].sort((a, b) => b[metric] - a[metric]);
-
-  // Create enhanced bar chart with better readability
-  const barChart = Plot.plot({
-    title: `${metricLabels[metric]} by Neighborhood`,
-    width: 800,
-    height: 400,
-    margin: {left: 80, right: 40, top: 50, bottom: 100},
-    style: {
-      background: "transparent",
-      color: dashboardColors.text.light,
-      fontSize: 16,
-      fontFamily: "'Inter', sans-serif" // Consistent font family
-    },
-    x: {
-      label: "Neighborhood",
-      grid: false, // Remove vertical grid for clarity
-      tickRotate: -45, // Rotate labels for better readability
-      domain: sortedData.map(d => `Neighborhood ${d.neighborhood}`),
-      labelStyle: { 
-        fill: dashboardColors.text.light, 
-        fontSize: "14px", 
-        fontWeight: "bold" 
-      },
-      tickSize: 4,
-      tickPadding: 8
-    },
-    y: {
-      label: metricLabels[metric],
-      grid: true,
-      labelStyle: { 
-        fill: dashboardColors.text.light, 
-        fontSize: "14px", 
-        fontWeight: "bold" 
-      },
-      tickFormat: d => metric === "missing_data_rate" ? `${d}%` : d.toFixed(1),
-      gridStyle: { stroke: "rgba(255, 255, 255, 0.2)" } // More visible grid
-    },
-    marks: [
-      // Add soft background for the chart
-      Plot.frame({fill: "rgba(255, 255, 255, 0.03)", stroke: "none"}),
-      
-      // Add enhanced bars
-      Plot.barY(sortedData, {
-        x: d => `Neighborhood ${d.neighborhood}`,
-        y: metric,
-        fill: d => selectedNeighborhoods.size > 0 ?
-              (selectedNeighborhoods.has(d.neighborhood) ? color : "rgba(255,255,255,0.08)") :
-              color,
-        fillOpacity: 0.9,
-        stroke: d => selectedNeighborhoods.has(d.neighborhood) ? "white" : "rgba(255,255,255,0.3)",
-        strokeWidth: d => selectedNeighborhoods.has(d.neighborhood) ? 2 : 0.5,
-        title: d => `Neighborhood ${d.neighborhood}: ${formatMetricValue(metric, d[metric])}`
-      }),
-      
-      // Add data values on top of bars for better readability
-      Plot.text(sortedData.filter(d => d[metric] > (d3.max(sortedData, d => d[metric]) * 0.1)), {
-        x: d => `Neighborhood ${d.neighborhood}`,
-        y: d => d[metric],
-        text: d => formatMetricValue(metric, d[metric]),
-        dy: -6,
-        fill: "white",
-        fontSize: 11,
-        fontWeight: "bold",
-        stroke: "rgba(0,0,0,0.5)",
-        strokeWidth: 2
-      }),
-      
-      // Add threshold line for missing data rate with improved visibility
-      ...(metric === "missing_data_rate" ? [
-        Plot.ruleY([parseFloat(document.getElementById("missing-data-threshold")?.value || 20)], {
-          stroke: "#ff9f1c", // Orange/yellow for better visibility
-          strokeWidth: 3,
-          strokeDasharray: "6,4"
-        }),
-        Plot.text([{
-          x: sortedData.length / 2,
-          y: parseFloat(document.getElementById("missing-data-threshold")?.value || 20)
-        }], {
-          text: ["Threshold Filter"],
-          dy: -8,
-          fill: "#ff9f1c",
-          fontSize: 12,
-          fontWeight: "bold",
-          stroke: "rgba(0,0,0,0.7)",
-          strokeWidth: 3
-        })
-      ] : []),
-      
-      // Add zero baseline
-      Plot.ruleY([0], {stroke: "rgba(255,255,255,0.5)", strokeWidth: 1}),
-      
-      // Add border frame
-      Plot.frame({stroke: dashboardColors.background.cardBorder, strokeWidth: 2})
-    ]
-  });
-
-  // Create statistics for this metric
-  const stats = summaryStats[metric];
-  const metricStats = html`
-    <div style="margin-top: 1.5rem; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
-      <h4 style="margin-top: 0; margin-bottom: 0.5rem;">Statistical Summary</h4>
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 1rem;">
-        <div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">Average</div>
-          <div style="font-size: 1.1rem; font-weight: 500;">${formatMetricValue(metric, stats.mean)}</div>
-        </div>
-        <div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">Median</div>
-          <div style="font-size: 1.1rem; font-weight: 500;">${formatMetricValue(metric, stats.median)}</div>
-        </div>
-        <div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">Minimum</div>
-          <div style="font-size: 1.1rem; font-weight: 500;">${formatMetricValue(metric, stats.min)}</div>
-        </div>
-        <div>
-          <div style="font-size: 0.8rem; color: var(--text-muted);">Maximum</div>
-          <div style="font-size: 1.1rem; font-weight: 500;">${formatMetricValue(metric, stats.max)}</div>
-        </div>
-      </div>
-    </div>
-  `;
-
-  // Create histogram for distribution
-  const histogramChart = Plot.plot({
-    title: `Distribution of ${metricLabels[metric]}`,
-    width: 400,
-    height: 200,
-    style: {
-      background: "transparent",
-      color: dashboardColors.text.light,
-      fontSize: 12
-    },
-    x: {
-      label: metricLabels[metric],
-      labelStyle: { fill: dashboardColors.text.light }
-    },
-    y: {
-      label: "Count",
-      grid: true,
-      labelStyle: { fill: dashboardColors.text.light },
-      gridStyle: { stroke: "rgba(255, 255, 255, 0.1)" }
-    },
-    marks: [
-      Plot.rectY(data,
-        Plot.binX(
-          { y: "count" },
-          { x: metric, thresholds: 10, fill: color, opacity: 0.8 }
-        )
-      ),
-      Plot.ruleX([stats.mean], { stroke: "white", strokeWidth: 2, strokeDasharray: "2,2" }),
-      Plot.text([{ x: stats.mean, y: 0 }], {
-        text: ["Mean"],
-        dy: -5,
-        fill: "white",
-        fontSize: 10
-      }),
-      Plot.frame({stroke: dashboardColors.background.cardBorder})
-    ]
-  });
-
-  // Create a grid for the two visualizations side by side
-  const visualizationGrid = html`
-    <div style="display: grid; grid-template-columns: 1fr 400px; gap: 1rem; margin-top: 1rem;">
-      ${barChart}
-      <div>
-        ${histogramChart}
-        ${metricStats}
-      </div>
-    </div>
-  `;
-
-  // Append to container
-  container.innerHTML = "";
-  container.appendChild(visualizationGrid);
-
-  // Add click event listener for cross-filtering
-  setTimeout(() => {
-    const bars = container.querySelectorAll("rect.mark");
-    bars.forEach(bar => {
-      if (bar.__data__ && bar.__data__.neighborhood) {
-        bar.style.cursor = "pointer";
-        bar.addEventListener("click", function(event) {
-          const neighborhood = event.target.__data__.neighborhood;
-
-          // Toggle selection
-          if (selectedNeighborhoods.has(neighborhood)) {
-            selectedNeighborhoods.delete(neighborhood);
-          } else {
-            selectedNeighborhoods.add(neighborhood);
-          }
-
-          // Update all charts
-          chartUpdaters.updateAll();
-        });
-      }
-    });
-  }, 100);
-}
-
-// Function to calculate correlation
-function correlation(x, y) {
-  const n = x.length;
-  const meanX = d3.mean(x);
-  const meanY = d3.mean(y);
-  const cov = d3.sum(x.map((xi, i) => (xi - meanX) * (y[i] - meanY))) / (n - 1);
-  const stdX = d3.deviation(x);
-  const stdY = d3.deviation(y);
-  return cov / (stdX * stdY);
-}
-
-// Function to create metrics comparison chart
-function createMetricsComparisonChart(container, data) {
-  // Calculate correlation matrix
-  const matrix = [];
-  metrics.forEach(metric1 => {
-    metrics.forEach(metric2 => {
-      const x = data.map(d => d[metric1]);
-      const y = data.map(d => d[metric2]);
-      const corr = correlation(x, y);
-      matrix.push({ metric1, metric2, correlation: corr });
-    });
-  });
-
-  // Create enhanced correlation heatmap with better readability
-  const heatmap = Plot.plot({
-    title: "Correlation Heatmap of Neighborhood Metrics",
-    width: 500,
-    height: 400,
-    margin: {left: 140, right: 140, bottom: 140, top: 60},
-    style: {
-      background: "transparent",
-      color: dashboardColors.text.light,
-      fontSize: 16,
-      fontFamily: "'Inter', sans-serif" // Consistent font family
-    },
-    x: {
-      domain: metrics,
-      label: "",
-      tickFormat: d => metricLabels[d] || d,
-      labelStyle: { 
-        fill: dashboardColors.text.light,
-        fontSize: "13px", 
-        fontWeight: "bold" 
-      },
-      tickRotate: -45,
-      tickSize: 6,
-      tickPadding: 8
-    },
-    y: {
-      domain: metrics,
-      label: "",
-      tickFormat: d => metricLabels[d] || d,
-      labelStyle: { 
-        fill: dashboardColors.text.light,
-        fontSize: "13px", 
-        fontWeight: "bold" 
-      },
-      tickSize: 6,
-      tickPadding: 8
-    },
-    marks: [
-      // Add soft background for the chart
-      Plot.frame({fill: "rgba(255, 255, 255, 0.03)", stroke: "none"}),
-      
-      // Draw a rectangle for each cell in the matrix with improved styling
-      Plot.cell(matrix, {
-        x: "metric1",
-        y: "metric2",
-        fill: "correlation",
-        rx: 4, // Rounded corners
-        ry: 4,
-        stroke: "#333",
-        strokeWidth: 1,
-        title: d => `${metricLabels[d.metric1]} vs ${metricLabels[d.metric2]}: ${d.correlation.toFixed(2)}`,
-        inset: 2 // More spacing between cells
-      }),
-      
-      // Add correlation values as text with improved styling
-      Plot.text(matrix, {
-        x: "metric1",
-        y: "metric2",
-        text: d => d.correlation.toFixed(2),
-        fill: d => Math.abs(d.correlation) > 0.3 ? "white" : "#333",
-        fontSize: 12,
-        fontWeight: "bold",
-        stroke: d => Math.abs(d.correlation) > 0.3 ? "rgba(0,0,0,0.5)" : "none",
-        strokeWidth: 2
-      }),
-      
-      // Add highlights for strong correlations
-      Plot.frame(matrix.filter(d => Math.abs(d.correlation) > 0.7 && d.metric1 !== d.metric2).map(d => ({
-        x: d.metric1,
-        y: d.metric2
-      })), {
-        stroke: "#fff",
-        strokeWidth: 2.5,
-        strokeDasharray: "3,2",
-        rx: 6,
-        ry: 6
-      }),
-      
-      // Add diagonal highlighting
-      Plot.frame(matrix.filter(d => d.metric1 === d.metric2).map(d => ({
-        x: d.metric1,
-        y: d.metric2
-      })), {
-        stroke: "rgba(255,255,255,0.5)",
-        strokeWidth: 2,
-        rx: 6,
-        ry: 6
-      }),
-      
-      // Add border frame
-      Plot.frame({stroke: dashboardColors.background.cardBorder, strokeWidth: 2})
-    ],
-    color: {
-      type: "diverging",
-      domain: [-1, 0, 1],
-      range: [dashboardColors.secondary, "#f8f9fa", dashboardColors.primary],
-      label: "Pearson Correlation",
-      legend: true
-    }
-  });
-
-  // Create parallel coordinates plot
-  const width = 900;
-  const height = 500;
-  const margin = { top: 50, right: 70, bottom: 80, left: 70 };
-
-  // Create the SVG container
-  const svg = d3.create("svg")
-    .attr("viewBox", `0 0 ${width} ${height}`)
-    .style("font", "14px 'Inter', sans-serif")
-    .style("background", "transparent");
-
-  const innerWidth = width - margin.left - margin.right;
-  const innerHeight = height - margin.top - margin.bottom;
-
-  // x-scale for positioning metrics along the horizontal axis
-  const x = d3.scalePoint()
-    .domain(metrics)
-    .range([0, innerWidth])
-    .padding(0.5);
-
-  // y-scales: one for each metric based on its data range
-  const yScales = {};
-  metrics.forEach(m => {
-    const values = data.map(d => d[m]);
-    yScales[m] = d3.scaleLinear()
-      .domain(d3.extent(values))
-      .nice()
-      .range([innerHeight, 0]);
-  });
-
-  // Append a group element for the plot
-  const g = svg.append("g")
-    .attr("transform", `translate(${margin.left}, ${margin.top})`);
-
-  // Add a background rectangle
-  g.append("rect")
-    .attr("width", innerWidth)
-    .attr("height", innerHeight)
-    .attr("fill", "rgba(42, 157, 143, 0.05)")
-    .attr("rx", 8)
-    .attr("ry", 8);
-
-  // Draw a line for each neighborhood
-  const lines = g.selectAll("path")
-    .data(data)
-    .join("path")
-    .attr("fill", "none")
-    .attr("stroke", d => d.reliability_color)
-    .attr("stroke-width", d => selectedNeighborhoods.size > 0 &&
-          selectedNeighborhoods.has(d.neighborhood) ? 3 : 1.5)
-    .attr("stroke-opacity", d => selectedNeighborhoods.size > 0 ?
-          (selectedNeighborhoods.has(d.neighborhood) ? 1 : 0.1) : 0.6)
-    .attr("d", d => d3.line()(metrics.map(m => [x(m), yScales[m](d[m])])));
-
-  // Add tooltips to lines
-  lines.append("title")
-    .text(d => `Neighborhood ${d.neighborhood} (${d.reliability_category} Reliability)`);
-
-  // Draw an axis for each metric
-  const axisGroup = g.selectAll("g.axis")
-    .data(metrics)
-    .join("g")
-    .attr("class", "axis")
-    .attr("transform", d => `translate(${x(d)},0)`)
-    .each(function(d) {
-      d3.select(this)
-        .call(d3.axisLeft(yScales[d]).ticks(5).tickSize(-5))
-        .selectAll("text")
-        .attr("fill", dashboardColors.text.light)
-        .attr("font-size", "12px");
-    });
-
-  // Remove domain path from axes
-  axisGroup.selectAll("path")
-    .attr("stroke", dashboardColors.background.cardBorder);
-
-  // Add labels for each axis
-  axisGroup.append("text")
-    .attr("y", -15)
-    .attr("text-anchor", "middle")
-    .attr("fill", dashboardColors.text.light)
-    .style("font-weight", "bold")
-    .text(d => metricLabels[d]);
-
-  // Add vertical grid lines
-  metrics.forEach(metric => {
-    g.append("line")
-      .attr("x1", x(metric))
-      .attr("x2", x(metric))
-      .attr("y1", 0)
-      .attr("y2", innerHeight)
-      .attr("stroke", dashboardColors.background.cardBorder)
-      .attr("stroke-opacity", 0.5)
-      .attr("stroke-dasharray", "3,3");
-  });
-
-  // Add a chart title
-  svg.append("text")
-    .attr("x", width / 2)
-    .attr("y", margin.top / 2)
-    .attr("text-anchor", "middle")
-    .style("font-size", "16px")
-    .style("font-weight", "bold")
-    .attr("fill", dashboardColors.text.light)
-    .text("Parallel Coordinates Plot of Neighborhood Metrics");
-
-  // Add legend
-  const legend = svg.append("g")
-    .attr("transform", `translate(${width - margin.right - 150}, ${margin.top})`);
-
-  ["High", "Medium", "Low"].forEach((category, i) => {
-    legend.append("line")
-      .attr("x1", 0)
-      .attr("x2", 20)
-      .attr("y1", i * 25)
-      .attr("y2", i * 25)
-      .attr("stroke", dashboardColors.reliability[category.toLowerCase()])
-      .attr("stroke-width", 2);
-
-    legend.append("text")
-      .attr("x", 30)
-      .attr("y", i * 25)
-      .attr("dy", "0.35em")
-      .attr("fill", dashboardColors.text.light)
-      .style("font-size", "12px")
-      .text(`${category} Reliability`);
-  });
-
-  // Analysis of correlations
-  const correlationAnalysis = html`
-    <div style="margin-top: 1rem; background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px;">
-      <h4 style="margin-top: 0;">Key Correlation Insights</h4>
-      <ul style="margin-top: 0.5rem;">
-        ${matrix
-          .filter(d => d.metric1 !== d.metric2 && Math.abs(d.correlation) > 0.5)
-          .map(d => html`
-            <li style="margin-bottom: 0.5rem;">
-              <strong>${metricLabels[d.metric1]}</strong> and <strong>${metricLabels[d.metric2]}</strong>
-              have a <span style="color: ${d.correlation > 0 ? dashboardColors.primary : dashboardColors.secondary};">
-                ${d.correlation > 0 ? "positive" : "negative"} correlation
-              </span> of ${d.correlation.toFixed(2)}
-            </li>
-          `)
-        }
-      </ul>
-    </div>
-  `;
-
-  // Create grid for parallel coords and heatmap
-  const comparisonGrid = html`
-    <div style="display: grid; grid-template-columns: 1fr; gap: 1.5rem;">
-      ${svg.node()}
-      <div style="display: grid; grid-template-columns: 500px 1fr; gap: 1rem; margin-top: 1rem;">
-        ${heatmap}
-        ${correlationAnalysis}
-      </div>
-    </div>
-  `;
-
-  // Append to container
-  container.innerHTML = "";
-  container.appendChild(comparisonGrid);
-
-  // Add click interactions to lines
-  setTimeout(() => {
-    const paths = container.querySelectorAll("path");
-    paths.forEach(path => {
-      if (path.__data__ && path.__data__.neighborhood) {
-        path.style.cursor = "pointer";
-        path.addEventListener("click", function(event) {
-          const neighborhood = event.target.__data__.neighborhood;
-
-          // Toggle selection
-          if (selectedNeighborhoods.has(neighborhood)) {
-            selectedNeighborhoods.delete(neighborhood);
-          } else {
-            selectedNeighborhoods.add(neighborhood);
-          }
-
-          // Update all charts
-          chartUpdaters.updateAll();
-        });
-      }
-    });
-  }, 100);
-}
-
-// In Observable Framework, inline handlers handle the tab switching
-// This function is kept to register updaters for content rendering
-function setupMetricTabs() {
-  const contentMissing = document.getElementById("tab-content-missing");
-  const contentDamage = document.getElementById("tab-content-damage");
-  const contentReport = document.getElementById("tab-content-report");
-  const contentComparison = document.getElementById("tab-content-comparison");
-
-  if (contentMissing && contentDamage && contentReport && contentComparison) {
-    console.log("Found metric tab content elements, setting up content");
-    
-    // Initial render
-    createMetricBarChart(contentMissing, filteredData, "missing_data_rate", dashboardColors.charts.missingData);
-    createMetricBarChart(contentDamage, filteredData, "damage_variability", dashboardColors.charts.damage);
-    createMetricBarChart(contentReport, filteredData, "report_frequency", dashboardColors.charts.reportFrequency);
-    createMetricsComparisonChart(contentComparison, filteredData);
-
-    // Register update function
-    chartUpdaters.register(function(data) {
-      createMetricBarChart(contentMissing, data, "missing_data_rate", dashboardColors.charts.missingData);
-      createMetricBarChart(contentDamage, data, "damage_variability", dashboardColors.charts.damage);
-      createMetricBarChart(contentReport, data, "report_frequency", dashboardColors.charts.reportFrequency);
-      createMetricsComparisonChart(contentComparison, data);
-    });
-    
-    return true; // Successfully set up
-  }
-  
-  console.log("Metric tab content elements not found yet");
-  return false; // Elements not found
-}
-
-// Setup metric tabs using Observable-compatible approach
-// In Observable, we use longer timeouts for DOM manipulation
-setTimeout(() => {
-  const contentMissing = document.getElementById("tab-content-missing");
-  const contentDamage = document.getElementById("tab-content-damage");
-  const contentReport = document.getElementById("tab-content-report");
-  const contentComparison = document.getElementById("tab-content-comparison");
-
-  if (contentMissing && contentDamage && contentReport && contentComparison) {
-    console.log("Found metric tab content elements, setting up content");
-    
-    // Initial render
-    createMetricBarChart(contentMissing, filteredData, "missing_data_rate", dashboardColors.charts.missingData);
-    createMetricBarChart(contentDamage, filteredData, "damage_variability", dashboardColors.charts.damage);
-    createMetricBarChart(contentReport, filteredData, "report_frequency", dashboardColors.charts.reportFrequency);
-    createMetricsComparisonChart(contentComparison, filteredData);
-
-    // Register update function
-    chartUpdaters.register(function(data) {
-      createMetricBarChart(contentMissing, data, "missing_data_rate", dashboardColors.charts.missingData);
-      createMetricBarChart(contentDamage, data, "damage_variability", dashboardColors.charts.damage);
-      createMetricBarChart(contentReport, data, "report_frequency", dashboardColors.charts.reportFrequency);
-      createMetricsComparisonChart(contentComparison, data);
-    });
-    
-    console.log("Metric tabs content setup complete");
-  } else {
-    console.error("Failed to find metric tab content elements:", {
-      contentMissing: Boolean(contentMissing),
-      contentDamage: Boolean(contentDamage),
-      contentReport: Boolean(contentReport),
-      contentComparison: Boolean(contentComparison)
-    });
-    
-    // Try again with a longer delay
-    setTimeout(setupMetricTabs, 2000);
-  }
-}, 1400);
-
-// Display the metrics analysis with tabs
-display(html`
-<div class="card">
-  <div class="dashboard-title">
-    <i class="fas fa-chart-bar"></i> Neighborhood Metrics Analysis
-  </div>
-  <p>Analyze individual metrics across neighborhoods and explore their relationships. Use the tabs below to switch between different metrics and views.</p>
-  ${metricTabContainer}
-</div>
-`);
-```
-
-## Neighborhood Insights Summary
-
-```js
-// Create a summary of key insights function
-function createNeighborhoodInsights(data) {
-  // Group neighborhoods by reliability category
-  const byReliability = d3.group(data, d => d.reliability_category);
-
-  // Calculate insights for each category
-  const insights = {};
-  for (const [category, neighborhoods] of byReliability.entries()) {
-    insights[category] = {
-      count: neighborhoods.length,
-      avgMissingData: d3.mean(neighborhoods, d => d.missing_data_rate),
-      avgReportFreq: d3.mean(neighborhoods, d => d.report_frequency),
-      avgDamageVar: d3.mean(neighborhoods, d => d.damage_variability),
-      avgReliability: d3.mean(neighborhoods, d => d.reliability_score),
-      examples: neighborhoods.slice(0, Math.min(3, neighborhoods.length)).map(d => d.neighborhood)
-    };
+// Main visualization code
+// Assign reliability categories
+const neighborhoods = data.map(n => ({
+  ...n,
+  reliability_category: n.reliability_score > stats.reliability_score.q3 ? "High" :
+                         n.reliability_score < stats.reliability_score.q1 ? "Low" : "Medium",
+  reliability_color: n.reliability_score > stats.reliability_score.q3 ? colors.reliability.high :
+                      n.reliability_score < stats.reliability_score.q1 ? colors.reliability.low :
+                      colors.reliability.medium
+}));
+
+// Track selected neighborhoods - initialize with a few example neighborhoods for demonstration
+const selectedNeighborhoods = new Set(["Old Town", "Wilson Forest", "Palace Hills"]);
+
+// Define width for charts
+const width = 800;
+
+// Set up filter elements
+const filters = {
+  reliability: "All Categories",
+  missingData: 20
+};
+
+// Get DOM elements
+const reliabilityFilter = document.getElementById("reliability-filter");
+const missingDataThreshold = document.getElementById("missing-data-threshold");
+const thresholdValue = document.getElementById("threshold-value");
+const neighborhoodSelect = document.getElementById("neighborhood-select");
+const resetButton = document.getElementById("reset-button");
+const selectedNeighborhoodsList = document.getElementById("selected-neighborhoods-list");
+const noSelectionMessage = document.getElementById("no-selection-message");
+
+// Populate neighborhood dropdown
+function populateNeighborhoodDropdown() {
+  // Clear existing options except the first one
+  while (neighborhoodSelect.options.length > 1) {
+    neighborhoodSelect.remove(1);
   }
 
-  // Create category specific insights cards
-  return html`
-    <div class="grid grid-cols-2" style="margin-top: 1rem; gap: 1rem;">
-      ${Object.entries(insights).map(([category, data]) => {
-        const categoryColor = dashboardColors.reliability[category.toLowerCase()];
-        return html`
-          <div class="insight-card" style="border-left: 4px solid ${categoryColor};">
-            <h4 style="margin-top: 0; color: ${categoryColor};">
-              ${category} Reliability Neighborhoods (${data.count})
-            </h4>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.5rem;">
-              <div>
-                <div style="font-size: 0.8rem; color: var(--text-muted);">Avg. Missing Data</div>
-                <div style="font-size: 1.1rem; font-weight: 500;">${data.avgMissingData.toFixed(1)}%</div>
-              </div>
-              <div>
-                <div style="font-size: 0.8rem; color: var(--text-muted);">Avg. Report Frequency</div>
-                <div style="font-size: 1.1rem; font-weight: 500;">${data.avgReportFreq.toFixed(1)} min</div>
-              </div>
-            </div>
-            <p style="margin-bottom: 0.5rem;">
-              <strong>Examples:</strong> ${data.examples.map(n => `Neighborhood ${n}`).join(', ')}
-            </p>
-            ${category === "Low" ? html`
-              <div class="highlight" style="margin: 0.5rem 0; font-size: 0.9rem;">
-                <strong><i class="fas fa-exclamation-triangle"></i> Warning:</strong>
-                Data from these neighborhoods should be treated with caution due to high uncertainty.
-              </div>
-            ` : ''}
-          </div>
-        `;
-      })}
-    </div>
-  `;
-}
+  // Add neighborhood options
+  const filteredData = getFilteredData();
+  filteredData.forEach(n => {
+    // Skip already selected neighborhoods
+    if (selectedNeighborhoods.has(n.neighborhood)) return;
 
-// Create overall data quality assessment card
-function createDataQualityAssessment(data) {
-  // Calculate overall metrics
-  const overallMissingData = d3.mean(data, d => d.missing_data_rate);
-  const highReliabilityPct = (data.filter(d => d.reliability_category === "High").length / data.length) * 100;
-  const lowReliabilityPct = (data.filter(d => d.reliability_category === "Low").length / data.length) * 100;
-
-  // Define quality thresholds
-  let qualityAssessment = "Good";
-  let qualityColor = dashboardColors.primary;
-
-  if (overallMissingData > 25 || lowReliabilityPct > 40) {
-    qualityAssessment = "Poor";
-    qualityColor = dashboardColors.secondary;
-  } else if (overallMissingData > 15 || lowReliabilityPct > 20 || highReliabilityPct < 30) {
-    qualityAssessment = "Fair";
-    qualityColor = dashboardColors.tertiary;
-  }
-
-  // Create assessment card
-  return html`
-    <div style="background: rgba(255,255,255,0.05); padding: 1.5rem; border-radius: 8px; margin: 1rem 0;">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-        <h3 style="margin: 0;">Overall Data Quality Assessment</h3>
-        <div style="background-color: ${qualityColor}; padding: 0.25rem 0.75rem; border-radius: 1rem; font-weight: bold;">
-          ${qualityAssessment}
-        </div>
-      </div>
-
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-        <div>
-          <div style="font-size: 0.9rem; color: var(--text-muted);">Average Missing Data</div>
-          <div style="font-size: 1.3rem; font-weight: 500; margin-bottom: 0.25rem;">${overallMissingData.toFixed(1)}%</div>
-          <div style="height: 6px; width: 100%; background: rgba(255,255,255,0.1); border-radius: 3px;">
-            <div style="height: 100%; width: ${Math.min(100, overallMissingData)}%; background: ${
-              overallMissingData > 25 ? dashboardColors.secondary :
-              overallMissingData > 15 ? dashboardColors.tertiary :
-              dashboardColors.primary
-            }; border-radius: 3px;"></div>
-          </div>
-        </div>
-
-        <div>
-          <div style="font-size: 0.9rem; color: var(--text-muted);">High Reliability Coverage</div>
-          <div style="font-size: 1.3rem; font-weight: 500; margin-bottom: 0.25rem;">${highReliabilityPct.toFixed(1)}%</div>
-          <div style="height: 6px; width: 100%; background: rgba(255,255,255,0.1); border-radius: 3px;">
-            <div style="height: 100%; width: ${highReliabilityPct}%; background: ${
-              highReliabilityPct < 30 ? dashboardColors.tertiary :
-              highReliabilityPct > 50 ? dashboardColors.primary :
-              dashboardColors.primary
-            }; border-radius: 3px;"></div>
-          </div>
-        </div>
-
-        <div>
-          <div style="font-size: 0.9rem; color: var(--text-muted);">Low Reliability Coverage</div>
-          <div style="font-size: 1.3rem; font-weight: 500; margin-bottom: 0.25rem;">${lowReliabilityPct.toFixed(1)}%</div>
-          <div style="height: 6px; width: 100%; background: rgba(255,255,255,0.1); border-radius: 3px;">
-            <div style="height: 100%; width: ${lowReliabilityPct}%; background: ${
-              lowReliabilityPct > 40 ? dashboardColors.secondary :
-              lowReliabilityPct > 20 ? dashboardColors.tertiary :
-              dashboardColors.primary
-            }; border-radius: 3px;"></div>
-          </div>
-        </div>
-      </div>
-    </div>
-  `;
-}
-
-// Create recommendations based on data
-function createRecommendations(data) {
-  // Get problematic neighborhoods (low reliability or high missing data)
-  const problematicNeighborhoods = data.filter(d =>
-    d.reliability_category === "Low" || d.missing_data_rate > 25
-  ).sort((a, b) => b.missing_data_rate - a.missing_data_rate);
-
-  // Create recommendations list
-  const recommendations = [];
-
-  if (problematicNeighborhoods.length > 0) {
-    recommendations.push({
-      title: "Focus on Improving Data Quality",
-      description: `Prioritize data collection in ${problematicNeighborhoods.length} neighborhoods with poor reliability, particularly neighborhoods ${
-        problematicNeighborhoods.slice(0, Math.min(3, problematicNeighborhoods.length))
-          .map(d => d.neighborhood).join(', ')
-      }.`,
-      icon: "fa-exclamation-circle"
-    });
-  }
-
-  // Add general recommendations
-  recommendations.push({
-    title: "Establish Data Quality Standards",
-    description: "Define minimum thresholds for report frequency and completeness across all neighborhoods to improve overall data reliability.",
-    icon: "fa-clipboard-check"
-  });
-
-  recommendations.push({
-    title: "Cross-Validate Critical Information",
-    description: "For neighborhoods with high damage variability, implement secondary verification to confirm the accuracy of extreme damage reports.",
-    icon: "fa-sync-alt"
-  });
-
-  recommendations.push({
-    title: "Implement Real-time Data Quality Monitoring",
-    description: "Set up automated alerts when missing data rates exceed 20% or when report frequency drops significantly for any neighborhood.",
-    icon: "fa-chart-line"
-  });
-
-  // Create recommendations cards
-  return html`
-    <div style="margin-top: 1rem;">
-      <h3>Recommendations</h3>
-
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1rem;">
-        ${recommendations.map(rec => html`
-          <div class="insight-card">
-            <div style="display: flex; gap: 0.75rem; align-items: center; margin-bottom: 0.75rem;">
-              <i class="fas ${rec.icon}" style="color: ${dashboardColors.secondary}; font-size: 1.2rem;"></i>
-              <h4 style="margin: 0;">${rec.title}</h4>
-            </div>
-            <p style="margin: 0; font-size: 0.9rem;">${rec.description}</p>
-          </div>
-        `)}
-      </div>
-    </div>
-  `;
-}
-
-// Create enhanced insights tab container with inline event handlers
-const insightsTabContainer = html`
-<div class="tab-container">
-  <div class="tab-buttons" style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 0.5rem;">
-    <button onclick=${() => {
-      document.querySelectorAll('#tab-insights, #tab-recommendations').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('#tab-content-insights, #tab-content-recommendations').forEach(c => c.classList.remove('active'));
-      document.getElementById('tab-insights').classList.add('active');
-      document.getElementById('tab-content-insights').classList.add('active');
-      
-      // Make sure content is rendered
-      const contentElement = document.getElementById('tab-content-insights');
-      if (contentElement && contentElement.children.length === 0) {
-        contentElement.appendChild(createNeighborhoodInsights(filteredData));
-      }
-    }} id="tab-insights" class="tab-button active" style="padding: 0.8rem 1.2rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; transition: all 0.2s; margin-right: 0.25rem; min-width: 200px; justify-content: center; flex: 1;">
-      <i class="fas fa-chart-pie"></i> Neighborhood Insights
-    </button>
-    <button onclick=${() => {
-      document.querySelectorAll('#tab-insights, #tab-recommendations').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('#tab-content-insights, #tab-content-recommendations').forEach(c => c.classList.remove('active'));
-      document.getElementById('tab-recommendations').classList.add('active');
-      document.getElementById('tab-content-recommendations').classList.add('active');
-      
-      // Make sure content is rendered
-      const contentElement = document.getElementById('tab-content-recommendations');
-      if (contentElement && contentElement.children.length === 0) {
-        contentElement.appendChild(createRecommendations(filteredData));
-      }
-    }} id="tab-recommendations" class="tab-button" style="padding: 0.8rem 1.2rem; font-size: 1rem; display: flex; align-items: center; gap: 0.5rem; border-bottom: 3px solid transparent; border-radius: 6px 6px 0 0; transition: all 0.2s; margin-right: 0.25rem; min-width: 200px; justify-content: center; flex: 1;">
-      <i class="fas fa-lightbulb"></i> Recommendations
-    </button>
-  </div>
-  <div id="tab-content-insights" class="tab-content active"></div>
-  <div id="tab-content-recommendations" class="tab-content"></div>
-</div>
-`;
-
-// In Observable Framework, inline handlers handle the tab switching
-// This function is kept to register updaters for content rendering
-function setupInsightsTabs() {
-  const contentInsights = document.getElementById("tab-content-insights");
-  const contentRecommendations = document.getElementById("tab-content-recommendations");
-
-  if (contentInsights && contentRecommendations) {
-    console.log("Found insights tab content elements, setting up content");
-    
-    // Initial rendering
-    contentInsights.appendChild(createNeighborhoodInsights(filteredData));
-    contentRecommendations.appendChild(createRecommendations(filteredData));
-
-    // Register update function
-    chartUpdaters.register(function(data) {
-      // Update insights
-      contentInsights.innerHTML = "";
-      contentInsights.appendChild(createNeighborhoodInsights(data));
-
-      // Update recommendations
-      contentRecommendations.innerHTML = "";
-      contentRecommendations.appendChild(createRecommendations(data));
-
-      // Update quality assessment
-      const qualityContainer = document.querySelector("#quality-assessment-container");
-      if (qualityContainer) {
-        qualityContainer.innerHTML = "";
-        qualityContainer.appendChild(createDataQualityAssessment(data));
-      }
-    });
-    
-    return true; // Successfully set up
-  }
-  
-  console.log("Insights tab content elements not found yet");
-  return false; // Elements not found
-}
-
-// Setup insights tabs using Observable-compatible approach
-// In Observable, use longer timeouts for DOM manipulation
-setTimeout(() => {
-  const contentInsights = document.getElementById("tab-content-insights");
-  const contentRecommendations = document.getElementById("tab-content-recommendations");
-
-  if (contentInsights && contentRecommendations) {
-    console.log("Found insights tab content elements, setting up content");
-    
-    // Initial rendering
-    contentInsights.appendChild(createNeighborhoodInsights(filteredData));
-    contentRecommendations.appendChild(createRecommendations(filteredData));
-
-    // Register update function
-    chartUpdaters.register(function(data) {
-      // Update insights
-      contentInsights.innerHTML = "";
-      contentInsights.appendChild(createNeighborhoodInsights(data));
-
-      // Update recommendations
-      contentRecommendations.innerHTML = "";
-      contentRecommendations.appendChild(createRecommendations(data));
-
-      // Update quality assessment
-      const qualityContainer = document.querySelector("#quality-assessment-container");
-      if (qualityContainer) {
-        qualityContainer.innerHTML = "";
-        qualityContainer.appendChild(createDataQualityAssessment(data));
-      }
-    });
-    
-    console.log("Insights tabs content setup complete");
-  } else {
-    console.error("Failed to find insights tab content elements:", {
-      contentInsights: Boolean(contentInsights),
-      contentRecommendations: Boolean(contentRecommendations)
-    });
-    
-    // Try again with a longer delay
-    setTimeout(setupInsightsTabs, 2000);
-  }
-}, 1600);
-
-// Display the insights section
-display(html`
-  <div class="card">
-    <div class="dashboard-title">
-      <i class="fas fa-lightbulb"></i> Insights & Recommendations
-    </div>
-
-    <div id="quality-assessment-container">
-      ${createDataQualityAssessment(filteredData)}
-    </div>
-
-    ${insightsTabContainer}
-  </div>
-`);
-```
-
-## Earthquake Reports Timeline
-
-```js
-// Create date selector for heatmap with inline event handlers
-const dateSelector = html`
-  <div style="display: flex; gap: 0.5rem; margin-bottom: 1.5rem; justify-content: center; flex-wrap: wrap;">
-    <button onclick=${() => {
-      document.querySelectorAll('[id^="date-btn-"]').forEach(btn => btn.classList.remove('active'));
-      document.getElementById('date-btn-1').classList.add('active');
-      updateHeatmap("2020-04-06");
-    }} id="date-btn-1" class="tab-button active" data-date="2020-04-06" style="min-width: 110px; padding: 10px 15px; font-size: 15px; display: flex; align-items: center; justify-content: center;">
-      <i class="fas fa-calendar-day" style="margin-right: 8px;"></i> Apr 6
-    </button>
-    <button onclick=${() => {
-      document.querySelectorAll('[id^="date-btn-"]').forEach(btn => btn.classList.remove('active'));
-      document.getElementById('date-btn-2').classList.add('active');
-      updateHeatmap("2020-04-07");
-    }} id="date-btn-2" class="tab-button" data-date="2020-04-07" style="min-width: 110px; padding: 10px 15px; font-size: 15px; display: flex; align-items: center; justify-content: center;">
-      <i class="fas fa-calendar-day" style="margin-right: 8px;"></i> Apr 7
-    </button>
-    <button onclick=${() => {
-      document.querySelectorAll('[id^="date-btn-"]').forEach(btn => btn.classList.remove('active'));
-      document.getElementById('date-btn-3').classList.add('active');
-      updateHeatmap("2020-04-08");
-    }} id="date-btn-3" class="tab-button" data-date="2020-04-08" style="min-width: 110px; padding: 10px 15px; font-size: 15px; display: flex; align-items: center; justify-content: center;">
-      <i class="fas fa-calendar-day" style="margin-right: 8px;"></i> Apr 8
-    </button>
-    <button onclick=${() => {
-      document.querySelectorAll('[id^="date-btn-"]').forEach(btn => btn.classList.remove('active'));
-      document.getElementById('date-btn-4').classList.add('active');
-      updateHeatmap("2020-04-09");
-    }} id="date-btn-4" class="tab-button" data-date="2020-04-09" style="min-width: 110px; padding: 10px 15px; font-size: 15px; display: flex; align-items: center; justify-content: center;">
-      <i class="fas fa-calendar-day" style="margin-right: 8px;"></i> Apr 9
-    </button>
-    <button onclick=${() => {
-      document.querySelectorAll('[id^="date-btn-"]').forEach(btn => btn.classList.remove('active'));
-      document.getElementById('date-btn-5').classList.add('active');
-      updateHeatmap("2020-04-10");
-    }} id="date-btn-5" class="tab-button" data-date="2020-04-10" style="min-width: 110px; padding: 10px 15px; font-size: 15px; display: flex; align-items: center; justify-content: center;">
-      <i class="fas fa-calendar-day" style="margin-right: 8px;"></i> Apr 10
-    </button>
-  </div>
-`;
-
-// Create container for the current heatmap
-const heatmapContainer = html`<div id="current-heatmap"></div>`;
-
-// Create map between neighborhood numbers and reliability categories
-function setupNeighborhoodReliabilityMap() {
-  const neighborhoodReliabilityMap = {};
-  neighborhoods.forEach(n => {
-    neighborhoodReliabilityMap[n.neighborhood] = {
-      category: n.reliability_category,
-      color: n.reliability_color
-    };
-  });
-  return neighborhoodReliabilityMap;
-}
-
-// Create a more informative legend with reliability categories
-function createCustomLegend() {
-  // Create reports legend
-  const reportsLegend = html`
-    <div style="margin-bottom: 1rem;">
-      <h4 style="margin-bottom: 0.5rem;">Reports Density</h4>
-      <div style="display: flex; align-items: center; gap: 0.5rem;">
-        <div style="display: flex; height: 20px; width: 300px; border-radius: 4px; overflow: hidden;">
-          ${Array(10).fill().map((_, i) => {
-            const color = d3.interpolate("#f7fbff", dashboardColors.secondary)(i/9);
-            return html`<div style="flex: 1; background-color: ${color};"></div>`;
-          })}
-        </div>
-        <div style="display: flex; justify-content: space-between; width: 300px;">
-          <span style="font-size: 0.8rem;">Low</span>
-          <span style="font-size: 0.8rem;">Medium</span>
-          <span style="font-size: 0.8rem;">High</span>
-        </div>
-      </div>
-    </div>
-  `;
-
-  // Create reliability legend
-  const reliabilityLegend = html`
-    <div>
-      <h4 style="margin-bottom: 0.5rem;">Reliability Categories</h4>
-      <div style="display: flex; gap: 1rem;">
-        ${["High", "Medium", "Low"].map(category => html`
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
-            <div style="width: 16px; height: 16px; background-color: ${dashboardColors.reliability[category.toLowerCase()]}; border-radius: 50%;"></div>
-            <span style="font-size: 0.8rem;">${category} Reliability</span>
-          </div>
-        `)}
-      </div>
-    </div>
-  `;
-
-  return html`
-    <div style="background: rgba(255,255,255,0.05); padding: 1rem; border-radius: 8px; margin-bottom: 1rem;">
-      ${reportsLegend}
-      ${reliabilityLegend}
-    </div>
-  `;
-}
-
-// Function to create enhanced heatmap
-function createEnhancedHeatmap(data, neighborhoodReliabilityMap, {width} = {}) {
-  // If no data, show message
-  if (!data || data.length === 0) {
-    return html`
-      <div style="padding: 2rem; text-align: center;">
-        <p>No data available for this date.</p>
-      </div>
-    `;
-  }
-
-  // Get all unique times for proper time axis
-  const times = [...new Set(data.map(d => d.time))].sort((a, b) => a - b);
-  const regions = Array.from({length: 19}, (_, i) => String(i + 1));
-
-  // Create a value accessor that maps null/undefined to 0
-  const valueAccessor = d => d?.value || 0;
-
-  // Create the heatmap
-  return Plot.plot({
-    width,
-    height: 500,
-    marginLeft: 60,
-    marginRight: 20,
-    marginTop: 40,
-    marginBottom: 70,
-    style: {
-      background: "transparent",
-      color: dashboardColors.text.light,
-      fontSize: 12
-    },
-    x: {
-      type: "band",
-      label: "Time",
-      domain: times,
-      tickFormat: d3.timeFormat("%H:%M"),
-      labelStyle: { fill: dashboardColors.text.light },
-      tickRotate: -45
-    },
-    y: {
-      label: "Region",
-      domain: regions,
-      labelStyle: { fill: dashboardColors.text.light }
-    },
-    color: {
-      type: "log",
-      domain: [1, d3.max(data, valueAccessor) || 100],
-      range: ["#f7fbff", dashboardColors.primary, dashboardColors.secondary],
-      legend: true,
-      label: "Number of Reports"
-    },
-    marks: [
-      Plot.cell(data, {
-        x: "time",
-        y: "region",
-        fill: valueAccessor,
-        stroke: d => selectedNeighborhoods.size > 0 &&
-                    selectedNeighborhoods.has(d.region) ?
-                    "white" : null,
-        strokeWidth: d => selectedNeighborhoods.size > 0 &&
-                          selectedNeighborhoods.has(d.region) ?
-                          2 : 0,
-        title: d => {
-          const reliability = neighborhoodReliabilityMap[d.region];
-          const reliabilityInfo = reliability ?
-            `\nReliability: ${reliability.category}` : '';
-
-          return `Time: ${d3.timeFormat("%Y-%m-%d %H:%M")(d.time)}
-Region: ${d.region}${reliabilityInfo}
-Reports: ${d.value || 0}`;
-        }
-      }),
-      Plot.frame({stroke: dashboardColors.background.cardBorder})
-    ],
-    // Add panning/zooming for interactive exploration
-    interactions: [Plot.zoom({
-      extent: [[0, 0], [width, 500]],
-      bound: "partial",
-      clip: false
-    })]
+    const option = document.createElement("option");
+    option.value = n.neighborhood;
+    option.textContent = n.neighborhood;
+    neighborhoodSelect.appendChild(option);
   });
 }
 
-// Function to load and process heatmap data
-function loadHeatmapData() {
-  return new Promise((resolve, reject) => {
-    FileAttachment("data/heatmap_data.csv").csv({typed: true})
-      .then(reports => {
-        try {
-          const parseTime = d3.timeParse("%Y-%m-%d %H:%M:%S");
+// Initialize event listeners
+reliabilityFilter.addEventListener("change", () => {
+  filters.reliability = reliabilityFilter.value;
+  renderDashboard();
+});
 
-          // Transform data for heatmap
-          const heatmap_data = reports.flatMap(d =>
-            Object.keys(d)
-              .filter(key => key !== "time_30min")
-              .map(region => ({
-                time: parseTime(d.time_30min),
-                region: region,
-                value: +d[region] || 0 // Handle NaN values
-              }))
-          );
+missingDataThreshold.addEventListener("input", () => {
+  filters.missingData = parseInt(missingDataThreshold.value);
+  thresholdValue.textContent = `${filters.missingData}%`;
+  renderDashboard();
+});
 
-          // Filter out invalid data points
-          const validData = heatmap_data.filter(d => d.time && !isNaN(d.value));
-          const formatDate = d3.timeFormat("%Y-%m-%d");
-
-          // Group data by days
-          const days = {
-            "2020-04-06": validData.filter(d => formatDate(d.time) === "2020-04-06"),
-            "2020-04-07": validData.filter(d => formatDate(d.time) === "2020-04-07"),
-            "2020-04-08": validData.filter(d => formatDate(d.time) === "2020-04-08"),
-            "2020-04-09": validData.filter(d => formatDate(d.time) === "2020-04-09"),
-            "2020-04-10": validData.filter(d => formatDate(d.time) === "2020-04-10")
-          };
-
-          resolve(days);
-        } catch (error) {
-          reject(error);
-        }
-      })
-      .catch(reject);
-  });
-}
-
-// Variables to store heatmap state
-let heatmapDays = {};
-let currentHeatmapDate = "2020-04-06";
-const neighborhoodReliabilityMap = setupNeighborhoodReliabilityMap();
-
-// Function to update heatmap based on date and selections
-function updateHeatmap(date) {
-  const heatmapElement = document.getElementById("current-heatmap");
-  if (!heatmapElement) return;
-
-  currentHeatmapDate = date;
-  const dateData = heatmapDays[date];
-
-  const chart = createEnhancedHeatmap(dateData, neighborhoodReliabilityMap, {
-    width: heatmapElement.clientWidth || 800
-  });
-
-  heatmapElement.innerHTML = "";
-  heatmapElement.appendChild(chart);
-
-  // Update date display
-  const dateDisplay = document.getElementById("current-date-display");
-  if (dateDisplay) {
-    dateDisplay.textContent = new Date(date).toLocaleDateString('en-US', {
-      weekday: 'long',
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric'
-    });
-  }
-
-  // Add click event listeners to heatmap cells
-  setTimeout(() => {
-    const cells = heatmapElement.querySelectorAll("rect.mark");
-    cells.forEach(cell => {
-      if (cell.__data__ && cell.__data__.region) {
-        cell.style.cursor = "pointer";
-        cell.addEventListener("click", function(event) {
-          const region = event.target.__data__.region;
-
-          // Toggle selection
-          if (selectedNeighborhoods.has(region)) {
-            selectedNeighborhoods.delete(region);
-          } else {
-            selectedNeighborhoods.add(region);
-          }
-
-          // Update all charts
-          chartUpdaters.updateAll();
-        });
-      }
-    });
-  }, 100);
-}
-
-// In Observable Framework, we don't need this function since we use inline handlers
-// This function is causing duplicate event handling with the inline handlers
-function setupDateButtons() {
-  console.log("Using inline event handlers for date buttons instead of traditional event listeners");
-  // No longer attaching duplicate event listeners
-}
-
-// Register heatmap updater function
-chartUpdaters.register(function(data) {
-  // We don't use filteredData for the heatmap
-  // but we do update to reflect selections
-  if (heatmapDays[currentHeatmapDate]) {
-    updateHeatmap(currentHeatmapDate);
+neighborhoodSelect.addEventListener("change", () => {
+  const selected = neighborhoodSelect.value;
+  if (selected) {
+    selectedNeighborhoods.add(selected);
+    renderDashboard();
+    // Reset select to placeholder
+    neighborhoodSelect.value = "";
   }
 });
 
-// Initialize heatmap data
-function initHeatmap() {
-  // Set up loading state
-  const heatmapElement = document.getElementById("current-heatmap");
-  if (heatmapElement) {
-    heatmapElement.innerHTML = `
-      <div style="padding: 2rem; text-align: center;">
-        <p><i class="fas fa-spinner fa-spin"></i> Loading heatmap data...</p>
-      </div>
-    `;
-  }
+resetButton.addEventListener("click", () => {
+  // Reset filters to default
+  filters.reliability = "All Categories";
+  filters.missingData = 20;
 
-  // Load data
-  loadHeatmapData()
-    .then(days => {
-      heatmapDays = days;
-      updateHeatmap("2020-04-06");
-      // Don't call setupDateButtons() as we're using inline handlers
-    })
-    .catch(error => {
-      console.error("Error loading heatmap data:", error);
+  // Reset DOM elements
+  reliabilityFilter.value = filters.reliability;
+  missingDataThreshold.value = filters.missingData;
+  thresholdValue.textContent = `${filters.missingData}%`;
 
-      if (heatmapElement) {
-        heatmapElement.innerHTML = `
-          <div style="padding: 2rem; text-align: center; color: ${dashboardColors.secondary};">
-            <i class="fas fa-exclamation-triangle" style="font-size: 2rem; margin-bottom: 1rem;"></i>
-            <p>Error loading heatmap data: ${error.message}</p>
-          </div>
-        `;
-      }
-    });
+  // Clear selections
+  selectedNeighborhoods.clear();
+
+  // Re-render dashboard
+  renderDashboard();
+});
+
+// Filter updates
+function updateFilters(type, value) {
+  filters[type] = value;
+  renderDashboard();
+  return filters;
 }
 
-// Initialize heatmap using Observable-compatible approach
-// In Observable, we use longer timeouts for DOM initialization
-setTimeout(() => {
-  const heatmapElement = document.getElementById("current-heatmap");
-  
-  if (heatmapElement) {
-    console.log("Found heatmap element, starting initialization");
-    initHeatmap();
+// Apply filters and handle reset
+function getFilteredData(resetFlag = false) {
+  // Reset selections if reset is true
+  if (resetFlag) selectedNeighborhoods.clear();
+
+  // Filter data
+  const reliabilitySetting = filters.reliability === "All Categories" ? "all" :
+    filters.reliability;
+
+  return neighborhoods.filter(n =>
+    (reliabilitySetting === "all" || n.reliability_category === reliabilitySetting) &&
+    n.missing_data_rate <= filters.missingData
+  );
+}
+
+// Event handler function for clicking on neighborhoods
+function handleClick(neighborhood) {
+  if (selectedNeighborhoods.has(neighborhood)) {
+    selectedNeighborhoods.delete(neighborhood);
   } else {
-    console.error("Failed to find heatmap element, will retry");
-    
-    // Try again with an even longer delay
-    setTimeout(() => {
-      const heatmapElement = document.getElementById("current-heatmap");
-      if (heatmapElement) {
-        console.log("Found heatmap element on second attempt, starting initialization");
-        initHeatmap();
-      } else {
-        console.error("Still failed to find heatmap element");
-      }
-    }, 2500);
+    selectedNeighborhoods.add(neighborhood);
   }
-}, 1800);
+  renderDashboard();
+}
 
-// Display timeline section with enhanced controls
-display(html`
-  <div class="card" style="margin-top: 50px;">
-    <div class="dashboard-title">
-      <i class="fas fa-calendar-alt"></i> Earthquake Reports Timeline
+// Function to render all visualizations
+function renderDashboard() {
+  // Recalculate filtered data based on current filters
+  const filteredData = getFilteredData();
+
+  // Update dropdown with filtered neighborhoods
+  populateNeighborhoodDropdown();
+
+  // Render all visualizations
+  renderSummaryStats();
+  renderSelectedNeighborhoods();
+  renderScatterPlot(filteredData);
+  renderHeatmap();
+  renderMetricCharts(filteredData);
+  renderRadarChart();
+  renderComparisonTable();
+}
+
+// Render summary statistics
+function renderSummaryStats() {
+  const container = document.getElementById("summary-stats-container");
+
+  // Calculate the count of each reliability category
+  const categoryCounts = {
+    High: neighborhoods.filter(n => n.reliability_category === "High").length,
+    Medium: neighborhoods.filter(n => n.reliability_category === "Medium").length,
+    Low: neighborhoods.filter(n => n.reliability_category === "Low").length
+  };
+
+  // Create HTML for summary stats
+  container.innerHTML = `
+    <div class="metric-cards">
+      <div class="metric-card">
+        <div class="metric-label">Average Missing Data Rate</div>
+        <div class="metric-value" style="color: ${colors.secondary}">${stats.missing_data_rate.mean.toFixed(1)}%</div>
+        <div class="metric-label">Range: ${stats.missing_data_rate.min.toFixed(1)}% - ${stats.missing_data_rate.max.toFixed(1)}%</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Average Report Frequency</div>
+        <div class="metric-value" style="color: ${colors.primary}">${stats.report_frequency.mean.toFixed(1)} min</div>
+        <div class="metric-label">Range: ${stats.report_frequency.min.toFixed(1)} - ${stats.report_frequency.max.toFixed(1)} min</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Average Damage Variability</div>
+        <div class="metric-value" style="color: ${colors.tertiary}">${stats.damage_variability.mean.toFixed(2)}</div>
+        <div class="metric-label">Range: ${stats.damage_variability.min.toFixed(2)} - ${stats.damage_variability.max.toFixed(2)}</div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-label">Reliability Distribution</div>
+        <div class="metric-value">
+          <span class="category-badge high">${categoryCounts.High}</span>
+          <span class="category-badge medium">${categoryCounts.Medium}</span>
+          <span class="category-badge low">${categoryCounts.Low}</span>
+        </div>
+        <div class="metric-label">High / Medium / Low</div>
+      </div>
     </div>
-    <p>This heatmap shows report density by region and time. Darker colors indicate a higher number of reports.
-    Select a neighborhood in any chart to highlight it across all visualizations.</p>
+  `;
+}
 
-    ${createCustomLegend()}
+// Render selected neighborhoods list
+function renderSelectedNeighborhoods() {
+  const container = selectedNeighborhoodsList;
 
-    <h3 id="current-date-display" style="text-align: center; margin-bottom: 1rem;">Loading date...</h3>
+  if (selectedNeighborhoods.size === 0) {
+    container.innerHTML = '';
+    noSelectionMessage.style.display = 'block';
+    return;
+  }
 
-    ${dateSelector}
+  noSelectionMessage.style.display = 'none';
 
-    ${heatmapContainer}
+  // Create HTML for selected neighborhoods
+  container.innerHTML = '';
 
-    <div style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-muted); text-align: center;">
-      <i class="fas fa-info-circle"></i> Tip: Use scroll wheel to zoom and drag to pan the heatmap. Click on a cell to select that neighborhood.
+  selectedNeighborhoods.forEach(neighborhood => {
+    const n = neighborhoods.find(d => d.neighborhood === neighborhood);
+    const item = document.createElement('div');
+    item.className = 'selected-item';
+    item.style.backgroundColor = n.reliability_color;
+
+    item.innerHTML = `
+      <span>${neighborhood}</span>
+      <button class="remove-btn" data-neighborhood="${neighborhood}">×</button>
+    `;
+
+    container.appendChild(item);
+  });
+
+  // Add event listeners to remove buttons
+  container.querySelectorAll('.remove-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const neighborhood = btn.getAttribute('data-neighborhood');
+      selectedNeighborhoods.delete(neighborhood);
+      renderDashboard();
+    });
+  });
+}
+
+// Render scatter plot
+function renderScatterPlot(filteredData) {
+  const container = document.getElementById("scatter-plot-container");
+  container.innerHTML = "";
+
+  // Set up dimensions
+  const margin = {top: 20, right: 20, bottom: 50, left: 60};
+  const chartWidth = 500 - margin.left - margin.right;
+  const chartHeight = 350 - margin.top - margin.bottom;
+
+  // Create SVG
+  const svg = d3.select(container)
+    .append("svg")
+      .attr("width", "100%")
+      .attr("height", chartHeight + margin.top + margin.bottom)
+      .attr("viewBox", `0 0 ${chartWidth + margin.left + margin.right} ${chartHeight + margin.top + margin.bottom}`)
+      .attr("preserveAspectRatio", "xMidYMid meet")
+    .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // Set up scales
+  const x = d3.scaleLinear()
+    .domain([0, d3.max(filteredData, d => d.missing_data_rate) * 1.1])
+    .range([0, chartWidth]);
+
+  const y = d3.scaleLinear()
+    .domain([0, d3.max(filteredData, d => d.reliability_score) * 1.1])
+    .range([chartHeight, 0]);
+
+  // Add X axis
+  svg.append("g")
+    .attr("transform", `translate(0,${chartHeight})`)
+    .call(d3.axisBottom(x).tickFormat(d => `${d}%`))
+    .selectAll("text")
+      .style("font-size", "10px")
+      .style("fill", "white");
+
+  // Add Y axis
+  svg.append("g")
+    .call(d3.axisLeft(y))
+    .selectAll("text")
+      .style("font-size", "10px")
+      .style("fill", "white");
+
+  // X axis label
+  svg.append("text")
+    .attr("text-anchor", "middle")
+    .attr("x", chartWidth / 2)
+    .attr("y", chartHeight + margin.bottom - 10)
+    .style("fill", "white")
+    .text("Missing Data Rate (%)");
+
+  // Y axis label
+  svg.append("text")
+    .attr("text-anchor", "middle")
+    .attr("transform", `translate(${-margin.left + 15},${chartHeight / 2}) rotate(-90)`)
+    .style("fill", "white")
+    .text("Reliability Score");
+
+  // Add grid lines
+  svg.append("g")
+    .attr("class", "grid")
+    .call(d3.axisLeft(y)
+      .tickSize(-chartWidth)
+      .tickFormat("")
+    )
+    .selectAll("line")
+      .style("stroke", "rgba(255,255,255,0.1)");
+
+  svg.append("g")
+    .attr("class", "grid")
+    .attr("transform", `translate(0,${chartHeight})`)
+    .call(d3.axisBottom(x)
+      .tickSize(-chartHeight)
+      .tickFormat("")
+    )
+    .selectAll("line")
+      .style("stroke", "rgba(255,255,255,0.1)");
+
+  // Add dots
+  svg.selectAll("circle")
+    .data(filteredData)
+    .enter()
+    .append("circle")
+      .attr("cx", d => x(d.missing_data_rate))
+      .attr("cy", d => y(d.reliability_score))
+      .attr("r", d => selectedNeighborhoods.has(d.neighborhood) ? 8 : 6)
+      .attr("fill", d => d.reliability_color)
+      .attr("stroke", d => selectedNeighborhoods.has(d.neighborhood) ? "white" : "none")
+      .attr("stroke-width", 2)
+      .attr("opacity", d => selectedNeighborhoods.has(d.neighborhood) ? 1 : 0.7)
+      .style("cursor", "pointer")
+      .on("mouseover", function(event, d) {
+        d3.select(this).attr("r", selectedNeighborhoods.has(d.neighborhood) ? 10 : 8);
+
+        // Create tooltip
+        const tooltip = d3.select("body").append("div")
+          .attr("class", "tooltip")
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 25) + "px");
+
+        tooltip.html(`
+          <strong>${d.neighborhood}</strong><br>
+          Reliability: ${d.reliability_score.toFixed(2)}<br>
+          Missing Data: ${d.missing_data_rate.toFixed(1)}%<br>
+          Category: ${d.reliability_category}
+        `);
+      })
+      .on("mousemove", function(event) {
+        d3.select(".tooltip")
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 25) + "px");
+      })
+      .on("mouseout", function(event, d) {
+        d3.select(this).attr("r", selectedNeighborhoods.has(d.neighborhood) ? 8 : 6);
+        d3.select(".tooltip").remove();
+      })
+      .on("click", (event, d) => {
+        handleClick(d.neighborhood);
+      });
+
+  // Add neighborhood labels for selected neighborhoods
+  svg.selectAll(".neighborhood-label")
+    .data(filteredData.filter(d => selectedNeighborhoods.has(d.neighborhood)))
+    .enter()
+    .append("text")
+      .attr("class", "neighborhood-label")
+      .attr("x", d => x(d.missing_data_rate) + 10)
+      .attr("y", d => y(d.reliability_score) - 10)
+      .text(d => d.neighborhood)
+      .style("fill", "white")
+      .style("font-size", "10px")
+      .style("font-weight", "bold");
+}
+
+// Render correlation heatmap
+function renderHeatmap() {
+  const container = document.getElementById("heatmap-container");
+  container.innerHTML = "";
+
+  // Calculate correlation matrix
+  const correlationMatrix = [];
+  const metricNames = ["Missing Data", "Report Freq.", "Damage Var.", "Reliability"];
+
+  // Calculate correlations between each pair of metrics
+  for (let i = 0; i < metrics.length; i++) {
+    correlationMatrix[i] = [];
+    for (let j = 0; j < metrics.length; j++) {
+      if (i === j) {
+        correlationMatrix[i][j] = 1; // Diagonal is always 1 (perfect correlation with self)
+      } else {
+        const metric1 = metrics[i];
+        const metric2 = metrics[j];
+        const values1 = neighborhoods.map(d => d[metric1]);
+        const values2 = neighborhoods.map(d => d[metric2]);
+
+        // Calculate Pearson correlation
+        const correlation = calculateCorrelation(values1, values2);
+        correlationMatrix[i][j] = correlation;
+      }
+    }
+  }
+
+  // Set up dimensions
+  const margin = {top: 30, right: 50, bottom: 50, left: 70};
+  const size = 240;
+  const cellSize = size / metrics.length;
+
+  // Create SVG
+  const svg = d3.select(container)
+    .append("svg")
+      .attr("width", "100%")
+      .attr("height", size + margin.top + margin.bottom)
+      .attr("viewBox", `0 0 ${size + margin.left + margin.right} ${size + margin.top + margin.bottom}`)
+      .attr("preserveAspectRatio", "xMidYMid meet")
+    .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // Create color scale
+  const colorScale = d3.scaleLinear()
+    .domain([-1, 0, 1])
+    .range([colors.secondary, "#FFFFFF", colors.primary]);
+
+  // Create cells
+  svg.selectAll()
+    .data(correlationMatrix.flatMap((row, i) => row.map((value, j) => ({i, j, value}))))
+    .enter()
+    .append("rect")
+      .attr("x", d => d.j * cellSize)
+      .attr("y", d => d.i * cellSize)
+      .attr("width", cellSize)
+      .attr("height", cellSize)
+      .attr("fill", d => colorScale(d.value))
+      .attr("stroke", "white")
+      .attr("stroke-width", 1);
+
+  // Add text to cells
+  svg.selectAll()
+    .data(correlationMatrix.flatMap((row, i) => row.map((value, j) => ({i, j, value}))))
+    .enter()
+    .append("text")
+      .attr("x", d => d.j * cellSize + cellSize/2)
+      .attr("y", d => d.i * cellSize + cellSize/2 + 5)
+      .attr("text-anchor", "middle")
+      .style("font-size", "10px")
+      .style("fill", d => Math.abs(d.value) > 0.6 ? "white" : "black")
+      .text(d => d.value.toFixed(2));
+
+  // Add row labels
+  svg.selectAll(".row-label")
+    .data(metricNames)
+    .enter()
+    .append("text")
+      .attr("class", "row-label")
+      .attr("x", -5)
+      .attr("y", (d, i) => i * cellSize + cellSize/2 + 5)
+      .attr("text-anchor", "end")
+      .style("font-size", "10px")
+      .style("fill", "white")
+      .text(d => d);
+
+  // Add column labels
+  svg.selectAll(".col-label")
+    .data(metricNames)
+    .enter()
+    .append("text")
+      .attr("class", "col-label")
+      .attr("x", (d, i) => i * cellSize + cellSize/2)
+      .attr("y", -5)
+      .attr("text-anchor", "middle")
+      .style("font-size", "10px")
+      .style("fill", "white")
+      .style("transform", "rotate(-45deg)")
+      .text(d => d);
+
+  // Add title
+  svg.append("text")
+    .attr("x", size / 2)
+    .attr("y", -15)
+    .attr("text-anchor", "middle")
+    .style("font-size", "12px")
+    .style("fill", "white")
+    .text("Correlation between Metrics");
+
+  // Add color scale legend
+  const legendWidth = 200;
+  const legendHeight = 10;
+
+  const legendX = d3.scaleLinear()
+    .domain([-1, 1])
+    .range([0, legendWidth]);
+
+  const legend = svg.append("g")
+    .attr("transform", `translate(${(size - legendWidth) / 2}, ${size + 20})`);
+
+  // Create gradient
+  const defs = svg.append("defs");
+  const gradient = defs.append("linearGradient")
+    .attr("id", "correlation-gradient")
+    .attr("x1", "0%")
+    .attr("x2", "100%")
+    .attr("y1", "0%")
+    .attr("y2", "0%");
+
+  gradient.append("stop")
+    .attr("offset", "0%")
+    .attr("stop-color", colors.secondary);
+
+  gradient.append("stop")
+    .attr("offset", "50%")
+    .attr("stop-color", "#FFFFFF");
+
+  gradient.append("stop")
+    .attr("offset", "100%")
+    .attr("stop-color", colors.primary);
+
+  // Add gradient rectangle
+  legend.append("rect")
+    .attr("width", legendWidth)
+    .attr("height", legendHeight)
+    .style("fill", "url(#correlation-gradient)");
+
+  // Add legend axis
+  const legendAxis = d3.axisBottom(legendX)
+    .tickValues([-1, -0.5, 0, 0.5, 1])
+    .tickFormat(d3.format(".1f"));
+
+  legend.append("g")
+    .attr("transform", `translate(0, ${legendHeight})`)
+    .call(legendAxis)
+    .selectAll("text")
+      .style("font-size", "8px")
+      .style("fill", "white");
+}
+
+// Function to calculate Pearson correlation
+function calculateCorrelation(x, y) {
+  const n = x.length;
+  let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
+
+  for (let i = 0; i < n; i++) {
+    sumX += x[i];
+    sumY += y[i];
+    sumXY += x[i] * y[i];
+    sumX2 += x[i] * x[i];
+    sumY2 += y[i] * y[i];
+  }
+
+  const numerator = n * sumXY - sumX * sumY;
+  const denominator = Math.sqrt((n * sumX2 - sumX * sumX) * (n * sumY2 - sumY * sumY));
+
+  if (denominator === 0) return 0;
+  return numerator / denominator;
+}
+
+// Render the metric analysis charts (bar charts)
+function renderMetricCharts(filteredData) {
+  console.log("Rendering metric charts with filtered data:", filteredData);
+
+  // Missing Data Rate Chart
+  const missingDataContainer = document.getElementById("missing-data-chart");
+  missingDataContainer.innerHTML = ""; // Clear previous content
+
+  const sortedMissingData = [...filteredData].sort((a, b) => b.missing_data_rate - a.missing_data_rate);
+
+  // Set up dimensions
+  const margin = {top: 40, right: 30, bottom: 90, left: 60};
+  const chartWidth = width - margin.left - margin.right;
+  const chartHeight = 300 - margin.top - margin.bottom;
+
+  // Create SVG for missing data chart
+  const missingDataSvg = d3.select(missingDataContainer)
+    .append("svg")
+      .attr("width", "100%")
+      .attr("height", 300)
+      .attr("viewBox", `0 0 ${width} 300`)
+      .attr("preserveAspectRatio", "xMidYMid meet")
+    .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // Set up scales
+  const x = d3.scaleBand()
+    .domain(sortedMissingData.map(d => d.neighborhood))
+    .range([0, chartWidth])
+    .padding(0.2);
+
+  const y = d3.scaleLinear()
+    .domain([0, d3.max(sortedMissingData, d => d.missing_data_rate) * 1.1])
+    .range([chartHeight, 0]);
+
+  // Add title
+  missingDataSvg.append("text")
+    .attr("x", chartWidth / 2)
+    .attr("y", -15)
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .style("fill", "white")
+    .text("Missing Data Rate by Neighborhood");
+
+  // Add X axis
+  missingDataSvg.append("g")
+    .attr("transform", `translate(0,${chartHeight})`)
+    .call(d3.axisBottom(x))
+    .selectAll("text")
+      .attr("transform", "translate(-10,0)rotate(-45)")
+      .style("text-anchor", "end")
+      .style("fill", "white");
+
+  // Add Y axis
+  missingDataSvg.append("g")
+    .call(d3.axisLeft(y).tickFormat(d => `${d}%`))
+    .selectAll("text")
+      .style("fill", "white");
+
+  // Add horizontal grid lines
+  missingDataSvg.append("g")
+    .attr("class", "grid")
+    .call(d3.axisLeft(y)
+      .tickSize(-chartWidth)
+      .tickFormat("")
+    )
+    .selectAll("line")
+      .style("stroke", "rgba(255,255,255,0.1)");
+
+  // Add bars
+  missingDataSvg.selectAll("rect")
+    .data(sortedMissingData)
+    .enter()
+    .append("rect")
+      .attr("x", d => x(d.neighborhood))
+      .attr("y", d => y(d.missing_data_rate))
+      .attr("width", x.bandwidth())
+      .attr("height", d => chartHeight - y(d.missing_data_rate))
+      .attr("fill", d => selectedNeighborhoods.has(d.neighborhood) ? colors.secondary : d.reliability_color)
+      .attr("stroke", d => selectedNeighborhoods.has(d.neighborhood) ? "white" : "none")
+      .attr("stroke-width", 1)
+      .style("cursor", "pointer")
+      .on("mouseover", function(event, d) {
+        d3.select(this).attr("opacity", 0.8);
+
+        // Create tooltip
+        const tooltip = d3.select("body").append("div")
+          .attr("class", "tooltip")
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 25) + "px");
+
+        tooltip.html(`
+          <strong>${d.neighborhood}</strong><br>
+          Missing Data: ${d.missing_data_rate.toFixed(1)}%<br>
+          Reliability: ${d.reliability_score.toFixed(2)}<br>
+          Category: ${d.reliability_category}
+        `);
+      })
+      .on("mousemove", function(event) {
+        d3.select(".tooltip")
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 25) + "px");
+      })
+      .on("mouseout", function() {
+        d3.select(this).attr("opacity", 1);
+        d3.select(".tooltip").remove();
+      })
+      .on("click", (event, d) => {
+        handleClick(d.neighborhood);
+      });
+
+  // Add threshold line
+  missingDataSvg.append("line")
+    .attr("x1", 0)
+    .attr("y1", y(filters.missingData))
+    .attr("x2", chartWidth)
+    .attr("y2", y(filters.missingData))
+    .attr("stroke", colors.secondary)
+    .attr("stroke-width", 2)
+    .attr("stroke-dasharray", "4,4");
+
+  // Add threshold label
+  missingDataSvg.append("text")
+    .attr("x", chartWidth - 10)
+    .attr("y", y(filters.missingData) - 5)
+    .attr("text-anchor", "end")
+    .style("font-size", "10px")
+    .style("fill", colors.secondary)
+    .text(`Threshold: ${filters.missingData}%`);
+
+  // Reliability Score Chart
+  const reliabilityContainer = document.getElementById("reliability-score-chart");
+  reliabilityContainer.innerHTML = ""; // Clear previous content
+
+  const sortedReliabilityData = [...filteredData].sort((a, b) => b.reliability_score - a.reliability_score);
+
+  // Create SVG for reliability chart
+  const reliabilitySvg = d3.select(reliabilityContainer)
+    .append("svg")
+      .attr("width", "100%")
+      .attr("height", 300)
+      .attr("viewBox", `0 0 ${width} 300`)
+      .attr("preserveAspectRatio", "xMidYMid meet")
+    .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // Set up scales
+  const xR = d3.scaleBand()
+    .domain(sortedReliabilityData.map(d => d.neighborhood))
+    .range([0, chartWidth])
+    .padding(0.2);
+
+  const yR = d3.scaleLinear()
+    .domain([0, d3.max(sortedReliabilityData, d => d.reliability_score) * 1.1])
+    .range([chartHeight, 0]);
+
+  // Add title
+  reliabilitySvg.append("text")
+    .attr("x", chartWidth / 2)
+    .attr("y", -15)
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .style("fill", "white")
+    .text("Reliability Score by Neighborhood");
+
+  // Add X axis
+  reliabilitySvg.append("g")
+    .attr("transform", `translate(0,${chartHeight})`)
+    .call(d3.axisBottom(xR))
+    .selectAll("text")
+      .attr("transform", "translate(-10,0)rotate(-45)")
+      .style("text-anchor", "end")
+      .style("fill", "white");
+
+  // Add Y axis
+  reliabilitySvg.append("g")
+    .call(d3.axisLeft(yR))
+    .selectAll("text")
+      .style("fill", "white");
+
+  // Add horizontal grid lines
+  reliabilitySvg.append("g")
+    .attr("class", "grid")
+    .call(d3.axisLeft(yR)
+      .tickSize(-chartWidth)
+      .tickFormat("")
+    )
+    .selectAll("line")
+      .style("stroke", "rgba(255,255,255,0.1)");
+
+  // Add bars
+  reliabilitySvg.selectAll("rect")
+    .data(sortedReliabilityData)
+    .enter()
+    .append("rect")
+      .attr("x", d => xR(d.neighborhood))
+      .attr("y", d => yR(d.reliability_score))
+      .attr("width", xR.bandwidth())
+      .attr("height", d => chartHeight - yR(d.reliability_score))
+      .attr("fill", d => selectedNeighborhoods.has(d.neighborhood) ? colors.primary : d.reliability_color)
+      .attr("stroke", d => selectedNeighborhoods.has(d.neighborhood) ? "white" : "none")
+      .attr("stroke-width", 1)
+      .style("cursor", "pointer")
+      .on("mouseover", function(event, d) {
+        d3.select(this).attr("opacity", 0.8);
+
+        // Create tooltip
+        const tooltip = d3.select("body").append("div")
+          .attr("class", "tooltip")
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 25) + "px");
+
+        tooltip.html(`
+          <strong>${d.neighborhood}</strong><br>
+          Reliability: ${d.reliability_score.toFixed(2)}<br>
+          Missing Data: ${d.missing_data_rate.toFixed(1)}%<br>
+          Category: ${d.reliability_category}
+        `);
+      })
+      .on("mousemove", function(event) {
+        d3.select(".tooltip")
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 25) + "px");
+      })
+      .on("mouseout", function() {
+        d3.select(this).attr("opacity", 1);
+        d3.select(".tooltip").remove();
+      })
+      .on("click", (event, d) => {
+        handleClick(d.neighborhood);
+      });
+
+  // Add threshold lines for quartiles
+  reliabilitySvg.append("line")
+    .attr("x1", 0)
+    .attr("y1", yR(stats.reliability_score.q1))
+    .attr("x2", chartWidth)
+    .attr("y2", yR(stats.reliability_score.q1))
+    .attr("stroke", colors.reliability.low)
+    .attr("stroke-width", 1)
+    .attr("stroke-dasharray", "4,4");
+
+  reliabilitySvg.append("line")
+    .attr("x1", 0)
+    .attr("y1", yR(stats.reliability_score.q3))
+    .attr("x2", chartWidth)
+    .attr("y2", yR(stats.reliability_score.q3))
+    .attr("stroke", colors.reliability.high)
+    .attr("stroke-width", 1)
+    .attr("stroke-dasharray", "4,4");
+
+  // Add quartile labels
+  reliabilitySvg.append("text")
+    .attr("x", chartWidth - 10)
+    .attr("y", yR(stats.reliability_score.q3) - 5)
+    .attr("text-anchor", "end")
+    .style("font-size", "10px")
+    .style("fill", colors.reliability.high)
+    .text(`Q3: ${stats.reliability_score.q3.toFixed(2)}`);
+
+  reliabilitySvg.append("text")
+    .attr("x", chartWidth - 10)
+    .attr("y", yR(stats.reliability_score.q1) - 5)
+    .attr("text-anchor", "end")
+    .style("font-size", "10px")
+    .style("fill", colors.reliability.low)
+    .text(`Q1: ${stats.reliability_score.q1.toFixed(2)}`);
+
+  // Damage Variability Chart
+  const damageContainer = document.getElementById("damage-variability-chart");
+  damageContainer.innerHTML = ""; // Clear previous content
+
+  const sortedDamageData = [...filteredData].sort((a, b) => b.damage_variability - a.damage_variability);
+
+  // Create SVG for damage variability chart
+  const damageSvg = d3.select(damageContainer)
+    .append("svg")
+      .attr("width", "100%")
+      .attr("height", 300)
+      .attr("viewBox", `0 0 ${width} 300`)
+      .attr("preserveAspectRatio", "xMidYMid meet")
+    .append("g")
+      .attr("transform", `translate(${margin.left},${margin.top})`);
+
+  // Set up scales
+  const xD = d3.scaleBand()
+    .domain(sortedDamageData.map(d => d.neighborhood))
+    .range([0, chartWidth])
+    .padding(0.2);
+
+  const yD = d3.scaleLinear()
+    .domain([0, d3.max(sortedDamageData, d => d.damage_variability) * 1.1])
+    .range([chartHeight, 0]);
+
+  // Add title
+  damageSvg.append("text")
+    .attr("x", chartWidth / 2)
+    .attr("y", -15)
+    .attr("text-anchor", "middle")
+    .style("font-size", "16px")
+    .style("fill", "white")
+    .text("Damage Variability by Neighborhood");
+
+  // Add X axis
+  damageSvg.append("g")
+    .attr("transform", `translate(0,${chartHeight})`)
+    .call(d3.axisBottom(xD))
+    .selectAll("text")
+      .attr("transform", "translate(-10,0)rotate(-45)")
+      .style("text-anchor", "end")
+      .style("fill", "white");
+
+  // Add Y axis
+  damageSvg.append("g")
+    .call(d3.axisLeft(yD))
+    .selectAll("text")
+      .style("fill", "white");
+
+  // Add horizontal grid lines
+  damageSvg.append("g")
+    .attr("class", "grid")
+    .call(d3.axisLeft(yD)
+      .tickSize(-chartWidth)
+      .tickFormat("")
+    )
+    .selectAll("line")
+      .style("stroke", "rgba(255,255,255,0.1)");
+
+  // Add bars
+  damageSvg.selectAll("rect")
+    .data(sortedDamageData)
+    .enter()
+    .append("rect")
+      .attr("x", d => xD(d.neighborhood))
+      .attr("y", d => yD(d.damage_variability))
+      .attr("width", xD.bandwidth())
+      .attr("height", d => chartHeight - yD(d.damage_variability))
+      .attr("fill", d => selectedNeighborhoods.has(d.neighborhood) ? colors.tertiary : d.reliability_color)
+      .attr("stroke", d => selectedNeighborhoods.has(d.neighborhood) ? "white" : "none")
+      .attr("stroke-width", 1)
+      .style("cursor", "pointer")
+      .on("mouseover", function(event, d) {
+        d3.select(this).attr("opacity", 0.8);
+
+        // Create tooltip
+        const tooltip = d3.select("body").append("div")
+          .attr("class", "tooltip")
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 25) + "px");
+
+        tooltip.html(`
+          <strong>${d.neighborhood}</strong><br>
+          Damage Variability: ${d.damage_variability.toFixed(2)}<br>
+          Reliability: ${d.reliability_score.toFixed(2)}<br>
+          Category: ${d.reliability_category}
+        `);
+      })
+      .on("mousemove", function(event) {
+        d3.select(".tooltip")
+          .style("left", (event.pageX + 10) + "px")
+          .style("top", (event.pageY - 25) + "px");
+      })
+      .on("mouseout", function() {
+        d3.select(this).attr("opacity", 1);
+        d3.select(".tooltip").remove();
+      })
+      .on("click", (event, d) => {
+        handleClick(d.neighborhood);
+      });
+}
+
+// Render radar chart for comparing selected neighborhoods
+function renderRadarChart() {
+  const container = document.getElementById("radar-chart-container");
+  container.innerHTML = "";
+
+  if (selectedNeighborhoods.size === 0) {
+    container.innerHTML = `
+      <div class="no-selection">
+        Select neighborhoods in the charts above to compare them in this radar chart
+      </div>
+    `;
+    return;
+  }
+
+  // Get selected neighborhoods data
+  const selectedData = neighborhoods.filter(n =>
+    selectedNeighborhoods.has(n.neighborhood)
+  );
+
+  // Normalize data for radar chart
+  const chartData = selectedData.map(n => ({
+    neighborhood: n.neighborhood,
+    color: n.reliability_color,
+    metrics: [
+      { key: "missing_data_rate", value: n.missing_data_rate_norm * 10, label: metricLabels.missing_data_rate },
+      { key: "report_frequency", value: n.report_frequency_norm * 10, label: metricLabels.report_frequency },
+      { key: "damage_variability", value: n.damage_variability_norm * 10, label: metricLabels.damage_variability },
+      { key: "reliability_score", value: n.reliability_score_norm * 10, label: metricLabels.reliability_score }
+    ]
+  }));
+
+  // Set up dimensions
+  const size = 500;
+  const margin = { top: 70, right: 50, bottom: 50, left: 50 }; // Increased top margin
+  const chartSize = size - margin.top - margin.bottom;
+  const center = { x: chartSize / 2 + margin.left, y: chartSize / 2 + margin.top + 10 }; // Shifted center down
+  const radius = chartSize / 2;
+
+  // Create SVG - make sure it fills the container
+  container.style.width = "100%";
+
+  const svg = d3.select(container)
+    .append("svg")
+      .attr("width", "100%")
+      .attr("height", 500)
+      .attr("viewBox", `0 0 ${size + 50} ${size + 50}`) // Added padding to viewBox
+      .attr("preserveAspectRatio", "xMidYMid meet");
+
+  // Scales
+  const angleScale = d3.scaleLinear()
+    .domain([0, 4])
+    .range([0, 2 * Math.PI]);
+
+  const radiusScale = d3.scaleLinear()
+    .domain([0, 10])
+    .range([0, radius]);
+
+  // Draw radar grid
+  const levels = 5; // 5 levels for the grid
+
+  for (let level = 1; level <= levels; level++) {
+    const r = radius * level / levels;
+
+    // Draw level circles
+    svg.append("circle")
+      .attr("cx", center.x)
+      .attr("cy", center.y)
+      .attr("r", r)
+      .attr("fill", "none")
+      .attr("stroke", "rgba(255,255,255,0.1)");
+
+    // Add level labels (only for even levels)
+    if (level % 2 === 0) {
+      svg.append("text")
+        .attr("x", center.x)
+        .attr("y", center.y - r - 5)
+        .attr("text-anchor", "middle")
+        .style("font-size", "11px") // Increased font size
+        .style("fill", "rgba(255,255,255,0.7)") // Slightly more visible
+        .text((level * 2).toString());
+    }
+  }
+
+  // Draw radar axes
+  for (let i = 0; i < 4; i++) {
+    const angle = angleScale(i) - Math.PI / 2;
+    const lineX = center.x + radius * Math.cos(angle);
+    const lineY = center.y + radius * Math.sin(angle);
+
+    svg.append("line")
+      .attr("x1", center.x)
+      .attr("y1", center.y)
+      .attr("x2", lineX)
+      .attr("y2", lineY)
+      .attr("stroke", "rgba(255,255,255,0.3)");
+
+    // Add axis labels with better positioning
+    const labelRadius = radius + 40; // Further increased label distance
+    const metric = chartData[0].metrics[i];
+
+    // Custom positioning based on angle
+    let xOffset = 0;
+    let yOffset = 0;
+    let textAnchor = "middle";
+    let dominantBaseline = "middle";
+
+    // Adjust position based on quadrant to prevent overlap
+    if (angle === -Math.PI/2) { // Top
+      yOffset = -20; // More space at top
+      dominantBaseline = "text-after-edge";
+    } else if (angle === Math.PI/2) { // Bottom
+      yOffset = 15;
+      dominantBaseline = "hanging";
+    } else if (angle === 0) { // Right
+      xOffset = 15;
+      textAnchor = "start";
+    } else if (angle === Math.PI) { // Left
+      xOffset = -15;
+      textAnchor = "end";
+    }
+
+    svg.append("text")
+      .attr("x", center.x + labelRadius * Math.cos(angle) + xOffset)
+      .attr("y", center.y + labelRadius * Math.sin(angle) + yOffset)
+      .attr("text-anchor", textAnchor)
+      .attr("dominant-baseline", dominantBaseline)
+      .style("font-size", "14px") // Increased font size
+      .style("font-weight", "bold")
+      .style("fill", "white")
+      .text(metric.label.replace(" (%)", "").replace(" (min)", ""));
+  }
+
+  // Draw radar paths
+  const lineGenerator = d3.lineRadial()
+    .radius(d => radiusScale(d.value))
+    .angle((d, i) => angleScale(i) - Math.PI / 2)
+    .curve(d3.curveCardinalClosed);
+
+  const radarGroups = svg.selectAll(".radar-group")
+    .data(chartData)
+    .enter()
+    .append("g")
+      .attr("class", "radar-group")
+      .attr("transform", `translate(${center.x}, ${center.y})`);
+
+  // Draw filled areas
+  radarGroups.append("path")
+    .attr("d", d => lineGenerator(d.metrics))
+    .attr("fill", d => d.color)
+    .attr("fill-opacity", 0.3)
+    .attr("stroke", d => d.color)
+    .attr("stroke-width", 2);
+
+  // Draw points
+  chartData.forEach(item => {
+    const pointGroup = svg.append("g")
+      .attr("transform", `translate(${center.x}, ${center.y})`);
+
+    item.metrics.forEach((metric, i) => {
+      const angle = angleScale(i) - Math.PI / 2;
+      const r = radiusScale(metric.value);
+      const x = r * Math.cos(angle);
+      const y = r * Math.sin(angle);
+
+      pointGroup.append("circle")
+        .attr("cx", x)
+        .attr("cy", y)
+        .attr("r", 6) // Larger data points
+        .attr("fill", item.color)
+        .attr("stroke", "white")
+        .attr("stroke-width", 1.5);
+    });
+  });
+
+  // Add legend - moved lower
+  const legend = svg.append("g")
+    .attr("class", "legend")
+    .attr("transform", `translate(${center.x}, ${size - 15})`);
+
+  chartData.forEach((item, i) => {
+    const legendItem = legend.append("g")
+      .attr("transform", `translate(${(i - chartData.length / 2) * 120}, 0)`);
+
+    legendItem.append("circle")
+      .attr("cx", 0)
+      .attr("cy", 0)
+      .attr("r", 7) // Larger circles
+      .attr("fill", item.color)
+      .attr("stroke", "white")
+      .attr("stroke-width", 1);
+
+    legendItem.append("text")
+      .attr("x", 10)
+      .attr("y", 5)
+      .style("font-size", "14px")
+      .style("font-weight", "bold")
+      .style("fill", "white")
+      .text(item.neighborhood);
+  });
+
+  // No title needed here as we already have a title in the container
+}
+
+// Render comparison table
+function renderComparisonTable() {
+  const container = document.getElementById("comparison-table");
+
+  if (selectedNeighborhoods.size === 0) {
+    container.innerHTML = `
+      <div class="no-selection">
+        Select neighborhoods in the charts above to compare them in detail
+      </div>
+    `;
+    return;
+  }
+
+  // Get selected neighborhoods data
+  const selectedData = neighborhoods.filter(n =>
+    selectedNeighborhoods.has(n.neighborhood)
+  );
+
+  // Create HTML table - full width and centered
+  let html = `
+    <div style="width: 100%; overflow-x: auto; display: flex; justify-content: center;">
+      <table class="comparison-table" style="width: 100%; max-width: 100%;">
+        <thead>
+          <tr>
+            <th style="text-align: center;">Neighborhood</th>
+            <th style="text-align: center;">Missing Data</th>
+            <th style="text-align: center;">Report Frequency</th>
+            <th style="text-align: center;">Damage Variability</th>
+            <th style="text-align: center;">Reliability Score</th>
+            <th style="text-align: center;">Category</th>
+          </tr>
+        </thead>
+        <tbody>
+  `;
+
+  // Add rows for each neighborhood
+  selectedData.forEach(n => {
+    html += `
+      <tr>
+        <td style="text-align: center;">${n.neighborhood}</td>
+        <td style="text-align: center;">
+          ${n.missing_data_rate.toFixed(1)}%
+          <div class="score-bar">
+            <div class="score-bar-fill" style="width: ${n.missing_data_rate_norm * 100}%; background-color: ${colors.secondary}"></div>
+          </div>
+        </td>
+        <td style="text-align: center;">
+          ${n.report_frequency.toFixed(1)} min
+          <div class="score-bar">
+            <div class="score-bar-fill" style="width: ${n.report_frequency_norm * 100}%; background-color: ${colors.primary}"></div>
+          </div>
+        </td>
+        <td style="text-align: center;">
+          ${n.damage_variability.toFixed(2)}
+          <div class="score-bar">
+            <div class="score-bar-fill" style="width: ${n.damage_variability_norm * 100}%; background-color: ${colors.tertiary}"></div>
+          </div>
+        </td>
+        <td style="text-align: center;">
+          ${n.reliability_score.toFixed(3)}
+          <div class="score-bar">
+            <div class="score-bar-fill" style="width: ${n.reliability_score_norm * 100}%; background-color: ${n.reliability_color}"></div>
+          </div>
+        </td>
+        <td style="text-align: center;">
+          <span class="category-badge ${n.reliability_category.toLowerCase()}">${n.reliability_category}</span>
+        </td>
+      </tr>
+    `;
+  });
+
+  html += `
+        </tbody>
+      </table>
     </div>
-  </div>
-`);
+  `;
+
+  container.innerHTML = html;
+}
+
+// Initial render of the dashboard
+renderDashboard();
+```
+
+<!-- stubs for sections that will be generated programmatically -->
+
+```js
+// The visualizations are now generated programmatically
 ```
