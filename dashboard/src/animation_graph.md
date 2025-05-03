@@ -1,5 +1,3 @@
-// St. Himark Damage Visualization for Observable Framework
-// This file would be saved as index.md in your Observable Framework project
 
 ---
 title: St. Himark Damage Progression Visualization
@@ -24,6 +22,29 @@ const dashboardColors = {
   dark: '#264653',
   light: '#e9e9e9',
   muted: '#a8a8a8',
+};
+
+// Define neighborhood name mapping from ID to actual name
+const neighborhoodMap = {
+  1: "Palace Hills",
+  2: "Northwest",
+  3: "Old Town", 
+  4: "Safe Town",
+  5: "Southwest",
+  6: "Downtown",
+  7: "Wilson Forest",
+  8: "Scenic Vista",
+  9: "Broadview",
+  10: "Chapparal",
+  11: "Terrapin Springs",
+  12: "Pepper Mill",
+  13: "Cheddarford",
+  14: "Easton",
+  15: "Weston",
+  16: "Southton",
+  17: "Oak Willow",
+  18: "East Parton",
+  19: "West Parton"
 };
 
 // Function to get color based on damage level (0-10)
@@ -482,10 +503,11 @@ display(visualizationContainer);
 ```js
 // Generate sample data for the visualization
 function generateSampleData() {
+  // Use the neighborhood names from the mapping defined globally
   const locations = [
-    "Neighborhood 1", "Neighborhood 2", "Neighborhood 3",
-    "Neighborhood 4", "Neighborhood 5", "Neighborhood 6",
-    "Neighborhood 7", "Neighborhood 8", "Neighborhood 9"
+    neighborhoodMap[1], neighborhoodMap[2], neighborhoodMap[3],
+    neighborhoodMap[4], neighborhoodMap[5], neighborhoodMap[6],
+    neighborhoodMap[7], neighborhoodMap[8], neighborhoodMap[9]
   ];
 
   const data = [];
@@ -687,7 +709,14 @@ function renderFrame(timestamp) {
       },
       d => d.location
     ),
-    ([location, value]) => ({ location, value })
+    ([location, value]) => {
+      // Convert numerical location IDs to actual neighborhood names
+      let neighborhoodName = location;
+      if (neighborhoodMap && neighborhoodMap[location]) {
+        neighborhoodName = neighborhoodMap[location];
+      }
+      return { location: neighborhoodName, value };
+    }
   );
 
   // Sort by damage score descending
@@ -988,7 +1017,9 @@ function generateInsights() {
 
       locationDamages.sort((a, b) => b[1] - a[1]);
       if (locationDamages.length > 0) {
-        peakDamageLocation = locationDamages[0][0];
+        // Get the location ID and convert to neighborhood name
+        const locationId = locationDamages[0][0];
+        peakDamageLocation = neighborhoodMap[locationId] || locationId;
       }
     }
   }
@@ -1028,8 +1059,14 @@ function generateInsights() {
   });
 
   // Find location with highest average damage
-  const mostDamagedLocation = Array.from(locationAvgDamage.entries())
-    .sort((a, b) => b[1] - a[1])[0];
+  const sortedLocations = Array.from(locationAvgDamage.entries())
+    .sort((a, b) => b[1] - a[1]);
+  
+  const mostDamagedLocationId = sortedLocations[0]?.[0];
+  const mostDamagedLocationName = neighborhoodMap[mostDamagedLocationId] || mostDamagedLocationId;
+  const mostDamagedLocationValue = sortedLocations[0]?.[1];
+  
+  const mostDamagedLocation = [mostDamagedLocationName, mostDamagedLocationValue];
 
   // Most variable location (highest standard deviation)
   const locationVariability = new Map();
@@ -1041,8 +1078,14 @@ function generateInsights() {
   });
 
   // Find location with highest variability
-  const mostVariableLocation = Array.from(locationVariability.entries())
-    .sort((a, b) => b[1] - a[1])[0];
+  const sortedVariableLocations = Array.from(locationVariability.entries())
+    .sort((a, b) => b[1] - a[1]);
+  
+  const mostVariableLocationId = sortedVariableLocations[0]?.[0];
+  const mostVariableLocationName = neighborhoodMap[mostVariableLocationId] || mostVariableLocationId;
+  const mostVariableLocationValue = sortedVariableLocations[0]?.[1];
+  
+  const mostVariableLocation = [mostVariableLocationName, mostVariableLocationValue];
 
   // Generate insight HTML
   let insightsHtml = `

@@ -4,15 +4,22 @@ title: St. Himark Damage Box Plot
 toc: false
 ---
 
-# St. Himark Damage Metrics by Date 📊
+# St. Himark Damage Metrics by Date
+
+This interactive visualization shows the distribution of damage metrics for each neighborhood across different days. Use the controls to explore different metrics and locations to identify patterns and outliers.
+
+```js
+// Import required libraries
+import * as d3 from "d3";
+```
 
 <div class="control-panel">
   <div class="control-group">
-    <label for="location-select"><strong>Select a Location:</strong></label>
+    <label for="location-select">Location:</label>
     <select id="location-select" class="dashboard-select"></select>
   </div>
   <div class="control-group">
-    <label for="metric-select"><strong>Select a Damage Metric:</strong></label>
+    <label for="metric-select">Damage Metric:</label>
     <select id="metric-select" class="dashboard-select">
       <option value="shake_intensity">Shake Intensity</option>
       <option value="sewer_and_water">Sewer & Water</option>
@@ -24,15 +31,16 @@ toc: false
   </div>
 </div>
 
+<h2>Damage Distribution Visualization</h2>
 <div class="chart-container">
   <div id="chart-container" class="chart-box"></div>
 </div>
 
-<div style="margin-top: 50px;">
-  <h2>Analysis Insights</h2>
+<div style="margin-top: 100px;">
+  <h2>Key Insights and Patterns</h2>
   <div class="dashboard-card insights-card">
     <div class="dashboard-title">
-      <i class="fas fa-lightbulb"></i> Box Plot Interpretation
+      <i class="fas fa-lightbulb"></i> Analysis Insights
     </div>
     <div id="insights-content">
       <p>Select a location and damage metric to analyze the distribution of values over time. The box plot shows the median (middle line), quartiles (box edges), and range (whiskers) of each damage metric, helping identify patterns and outliers.</p>
@@ -41,7 +49,7 @@ toc: false
 </div>
 
 ```js
-// Apply styles for the dashboard
+// Define CSS for the dashboard
 const dashboardStyles = html`<style>
 :root {
   --primary-color: #2a9d8f;
@@ -51,25 +59,6 @@ const dashboardStyles = html`<style>
   --text-muted: #a8a8a8;
   --bg-card: rgba(42, 157, 143, 0.1);
   --bg-card-border: rgba(42, 157, 143, 0.2);
-}
-body {
-  font-family: 'Inter', sans-serif;
-  background-color: var(--bg-dark);
-  color: var(--text-light);
-  line-height: 1.6;
-}
-h1, h2, h3, h4, h5, h6 {
-  color: var(--text-light);
-  margin-bottom: 1rem;
-}
-h1 {
-  font-size: 2.2rem;
-  text-align: center;
-  margin-bottom: 1.5rem;
-  background: linear-gradient(45deg, var(--primary-color), var(--secondary-color));
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  background-clip: text;
 }
 .control-panel {
   display: flex;
@@ -88,6 +77,33 @@ h1 {
   align-items: center;
   gap: 0.8rem;
   flex-wrap: wrap;
+}
+.dashboard-button {
+  background-color: var(--primary-color);
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 18px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.3s ease;
+}
+.dashboard-button:hover {
+  background-color: #218777;
+  transform: translateY(-2px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+.dashboard-button:disabled {
+  background-color: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+.dashboard-range {
+  width: 150px;
+  margin: 0 0.5rem;
+  accent-color: var(--primary-color);
 }
 .dashboard-select {
   padding: 8px 12px;
@@ -110,8 +126,8 @@ h1 {
   padding: 1.5rem;
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   width: 100%;
-  height: 600px;
-  min-height: 600px;
+  height: 750px;
+  min-height: 750px;
   box-sizing: border-box;
   position: relative;
   margin-bottom: 2rem;
@@ -142,10 +158,47 @@ h1 {
   gap: 0.5rem;
 }
 .insights-card {
-  margin-top: 1rem;
+  margin-top: 2rem;
 }
-.insights-content p {
+.insights-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+.insight-card {
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  transition: transform 0.2s;
+}
+.insight-card:hover {
+  transform: translateY(-3px);
+  background: rgba(255, 255, 255, 0.08);
+}
+.insight-title {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: var(--primary-color);
+  margin-bottom: 0.8rem;
+}
+.insight-content {
+  font-size: 0.95rem;
+  color: var(--text-light);
+}
+.insight-content p {
   margin: 0.7rem 0;
+}
+.chart-title {
+  font-size: 1.3rem;
+  font-weight: 500;
+  text-align: center;
+}
+@media (max-width: 1200px) {
+  .insights-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>`;
 
@@ -173,6 +226,29 @@ const dashboardColors = {
     light: '#e9e9e9',
     muted: '#a8a8a8'
   }
+};
+
+// Define neighborhood name mapping from ID to actual name
+const neighborhoodMap = {
+  1: "Palace Hills",
+  2: "Northwest",
+  3: "Old Town", 
+  4: "Safe Town",
+  5: "Southwest",
+  6: "Downtown",
+  7: "Wilson Forest",
+  8: "Scenic Vista",
+  9: "Broadview",
+  10: "Chapparal",
+  11: "Terrapin Springs",
+  12: "Pepper Mill",
+  13: "Cheddarford",
+  14: "Easton",
+  15: "Weston",
+  16: "Southton",
+  17: "Oak Willow",
+  18: "East Parton",
+  19: "West Parton"
 };
 
 // Function to get color based on damage level (0-10)
@@ -236,7 +312,8 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
   locations.forEach(loc => {
     const option = document.createElement("option");
     option.value = loc;
-    option.textContent = `Neighborhood ${loc}`;
+    // Use the neighborhood mapping for the display text
+    option.textContent = neighborhoodMap[loc] || `Neighborhood ${loc}`;
     locationSelect.appendChild(option);
   });
 
@@ -273,13 +350,46 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
-    // Create insights HTML
+    // Create insights HTML in a grid format (similar to animation_graph.md)
+    const neighborhoodName = neighborhoodMap[location] || `Neighborhood ${location}`;
+    
+    // Calculate variance for variability insight
+    const variance = d3.variance(metricValues) || 0;
+    const stdDev = Math.sqrt(variance);
+    
     const html = `
-      <p>In Neighborhood ${location}, the ${getMetricLabel(metric)} ranged from <strong>${min.toFixed(2)}</strong> to <strong>${max.toFixed(2)}</strong>,
-         with a median of <strong>${median.toFixed(2)}</strong>.</p>
-      <p>The highest levels were recorded on <strong>${formatDate(maxDate)}</strong>, with an average of <strong>${maxDateAvg.toFixed(2)}</strong>.</p>
-      <p>Box plots show the distribution of damage values across each day, with the box representing the middle 50% of values
-         and the whiskers showing the full range excluding outliers.</p>
+      <div class="insights-grid">
+        <div class="insight-card">
+          <div class="insight-title">Damage Range</div>
+          <div class="insight-content">
+            <p>In ${neighborhoodName}, the ${getMetricLabel(metric)} ranged from <strong>${min.toFixed(2)}</strong> to <strong>${max.toFixed(2)}</strong>,
+               with a median of <strong>${median.toFixed(2)}</strong>.</p>
+            <p>This indicates the overall impact severity and distribution of damage.</p>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-title">Peak Damage Period</div>
+          <div class="insight-content">
+            <p>The highest levels were recorded on <strong>${formatDate(maxDate)}</strong>, with an average of <strong>${maxDateAvg.toFixed(2)}</strong>.</p>
+            <p>This peak represents the most critical period for this type of infrastructure damage.</p>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-title">Damage Variability</div>
+          <div class="insight-content">
+            <p>The standard deviation of damage values is <strong>${stdDev.toFixed(2)}</strong>, indicating 
+               ${stdDev > 2 ? 'high' : stdDev > 1 ? 'moderate' : 'low'} variability in reported damage levels.</p>
+            <p>This may reflect ${stdDev > 2 ? 'inconsistent impact patterns or reporting' : stdDev > 1 ? 'natural variation in effects' : 'consistent impact across the area'}.</p>
+          </div>
+        </div>
+        <div class="insight-card">
+          <div class="insight-title">Box Plot Interpretation</div>
+          <div class="insight-content">
+            <p>The box plot visualization shows the distribution of damage values for each day.</p>
+            <p>Each box represents the middle 50% of values, the line is the median, the dot shows the mean, and the whiskers indicate the full range excluding outliers.</p>
+          </div>
+        </div>
+      </div>
     `;
 
     insightsContent.innerHTML = html;
@@ -325,7 +435,8 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
     // Create SVG for box plot
     const container = document.getElementById("chart-container");
     const width = container.clientWidth;
-    const height = container.clientHeight;
+    const height = 750; // Set fixed height to match animation graph
+    container.style.height = `${height}px`;
     const margin = { top: 40, right: 30, bottom: 60, left: 80 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
@@ -522,6 +633,7 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .text(getMetricLabel(selectedMetric));
 
     // Add chart title
+    const neighborhoodTitle = neighborhoodMap[selectedLocation] || `Neighborhood ${selectedLocation}`;
     svg.append("text")
       .attr("class", "chart-title")
       .attr("text-anchor", "middle")
@@ -530,7 +642,7 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("font-size", "16px")
       .attr("font-weight", "bold")
       .attr("fill", dashboardColors.text.light)
-      .text(`${getMetricLabel(selectedMetric)} in Neighborhood ${selectedLocation}`);
+      .text(`${getMetricLabel(selectedMetric)} in ${neighborhoodTitle}`);
 
     // Add legend
     const legendGroup = svg.append("g")
