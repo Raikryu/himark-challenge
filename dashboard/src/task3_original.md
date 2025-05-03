@@ -195,7 +195,7 @@ console.log("Location uncertainty data:", locationUncertaintyData.slice(0, 3));
 const dashboardStyle = html`<style>
 .dashboard-grid {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 1fr; /* Default even columns if not specified inline */
   gap: 1.5rem;
   margin-bottom: 1.5rem;
   width: 100%;
@@ -203,7 +203,7 @@ const dashboardStyle = html`<style>
 
 @media (max-width: 768px) {
   .dashboard-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr !important; /* Override any inline column settings on mobile */
   }
 }
 
@@ -224,9 +224,6 @@ const dashboardStyle = html`<style>
   font-weight: 600;
   color: ${colors.primary};
   margin-bottom: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
 }
 
 .dashboard-overview {
@@ -261,9 +258,9 @@ const dashboardStyle = html`<style>
 .control-group {
   display: flex;
   flex-direction: column;
-  min-width: 0;
-  flex: 1 1 150px;
-  max-width: 200px;
+  min-width: 0; /* Allow control groups to shrink below 180px on small screens */
+  flex: 1 1 150px; /* Grow, shrink, and base width */
+  max-width: 200px; /* Maximum width to prevent too wide controls */
   margin-bottom: 0.5rem;
 }
 
@@ -279,6 +276,7 @@ const dashboardStyle = html`<style>
   text-overflow: ellipsis;
 }
 
+/* Value display for sliders */
 .control-value-display {
   text-align: center;
   margin-bottom: 5px;
@@ -289,6 +287,7 @@ const dashboardStyle = html`<style>
   padding: 2px 4px;
 }
 
+/* Action buttons */
 .action-button {
   margin-top: 0.5rem;
   padding: 0.5rem 1rem;
@@ -335,12 +334,13 @@ th {
   height: 50px;
 }
 
+/* Ensure rows take up available space */
 tbody {
   height: 100%;
 }
 
 tbody tr {
-  height: calc(100% / 4);
+  height: calc(100% / 4); /* For 4 time periods */
 }
 
 tr:nth-child(even) {
@@ -358,12 +358,14 @@ tr:hover {
   transition: background-color 0.2s;
 }
 
+/* Make first column larger since it contains the time period name */
 table th:first-child,
 table td:first-child {
   width: 30%;
   font-weight: bold;
 }
 
+/* Heatmap */
 .heatmap-container {
   overflow-x: auto;
   margin: 1.5rem 0;
@@ -378,10 +380,10 @@ table td:first-child {
 }
 
 #day-heatmap-container {
-  height: auto !important;
-  min-height: 0 !important;
-  overflow-x: auto;
-  overflow-y: hidden;
+  height: auto !important; /* Auto height to fit content */
+  min-height: 0 !important; /* Remove min-height constraint */
+  overflow-x: auto; /* Allow only horizontal scrolling */
+  overflow-y: hidden; /* Prevent vertical scrolling */
   max-width: 100%;
 }
 
@@ -396,14 +398,14 @@ table td:first-child {
   background-color: ${colors.background.dark};
   text-align: center;
   padding: 16px;
-  font-size: 1.4rem;
+  font-size: 1.4rem; /* Increased font size */
 }
 
 .heatmap-table td {
   padding: 20px;
   text-align: center;
   font-weight: bold;
-  font-size: 1.2rem;
+  font-size: 1.2rem; /* Increased font size */
   cursor: pointer;
   transition: transform 0.2s;
 }
@@ -413,10 +415,12 @@ table td:first-child {
   z-index: 10;
 }
 
+/* Selected row */
 .selected-row {
   background-color: rgba(42, 157, 143, 0.2) !important;
 }
 
+/* Legend */
 .legend {
   display: flex;
   flex-wrap: wrap;
@@ -447,6 +451,7 @@ table td:first-child {
   border-radius: 50%;
 }
 
+/* Network diagram */
 .network-controls {
   display: flex;
   flex-direction: column;
@@ -463,6 +468,7 @@ table td:first-child {
   font-style: italic;
 }
 
+/* Range input styling */
 input[type="range"] {
   width: 100%;
   margin: 0.5rem 0;
@@ -492,6 +498,7 @@ input[type="range"]::-webkit-slider-thumb {
   box-shadow: 0 2px 4px rgba(0,0,0,0.3);
 }
 
+/* Bubble chart controls */
 .bubble-controls {
   display: flex;
   flex-direction: column;
@@ -499,10 +506,12 @@ input[type="range"]::-webkit-slider-thumb {
   margin-bottom: 20px;
 }
 
+/* Above threshold */
 .above-threshold {
   border: 2px solid ${colors.secondary} !important;
 }
 
+/* Debug info */
 .debug-info {
   background-color: rgba(0, 0, 0, 0.7);
   color: #fff;
@@ -515,14 +524,15 @@ input[type="range"]::-webkit-slider-thumb {
   overflow-y: auto;
 }
 
+/* Responsive */
 @media (max-width: 768px) {
   .dashboard-controls {
-    flex-direction: row;
+    flex-direction: row; /* Keep row layout but ensure wrapping */
     justify-content: flex-start;
   }
 
   .control-group {
-    flex: 1 1 120px;
+    flex: 1 1 120px; /* Slightly smaller on mobile */
   }
 
   .legend {
@@ -530,15 +540,18 @@ input[type="range"]::-webkit-slider-thumb {
     align-items: flex-start;
   }
 
+  /* Adjust overview heatmap for smaller screens */
   #overview-heatmap-container {
     height: 150px !important;
   }
 
+  /* Smaller margins */
   .dashboard-card {
     padding: 1rem;
   }
 }
 
+/* Very small screens */
 @media (max-width: 480px) {
   .dashboard-controls {
     padding: 0.75rem;
@@ -546,20 +559,23 @@ input[type="range"]::-webkit-slider-thumb {
   }
 
   .control-group {
-    flex: 1 1 100%;
+    flex: 1 1 100%; /* Full width on very small screens */
     max-width: 100%;
   }
 
+  /* Stack controls more efficiently */
   .dashboard-grid {
     gap: 1rem;
   }
 }
 </style>`;
 
+// Apply styles
 display(dashboardStyle);
 ```
 
 ```js
+// Create HTML containers for the dashboard
 html`
 <div class="dashboard-overview">
   <h2>Temporal Patterns in Uncertainty Data</h2>
@@ -675,8 +691,10 @@ function getTextColor(value) {
 function renderDayHeatmap() {
   const container = document.getElementById("day-heatmap-container");
 
+  // Clear previous content
   container.innerHTML = "";
 
+  // Get data for the selected day
   const selectedDayData = dayGroups[dashboardState.selectedDay] || [];
 
   console.log("Rendering heatmap for day:", dashboardState.selectedDay);
@@ -687,11 +705,13 @@ function renderDayHeatmap() {
     return;
   }
 
+  // Extract only HH:MM from the time_string
   const timeFormat = d => {
     const timeString = d.time_string;
-    return timeString.split(" ")[1].substring(0, 5);
+    return timeString.split(" ")[1].substring(0, 5); // Just get HH:MM
   };
 
+  // Group by unique time strings
   const timeGroups = d3.groups(selectedDayData, timeFormat);
   timeGroups.sort((a, b) => {
     const timeA = a[0];
@@ -699,24 +719,32 @@ function renderDayHeatmap() {
     return timeA.localeCompare(timeB);
   });
 
+  // Filter to show only 24 hours of data
+  // If there are more than 24 time points, we'll use a slider later
   let uniqueTimes = timeGroups.map(group => group[0]);
 
+  // If we have too many time points, limit to 24 (or fewer if that's all we have)
   const maxTimePoints = 24;
   const allTimePoints = uniqueTimes.length;
 
+  // Update the time window slider's max value
   const timeWindowSlider = document.getElementById("time-window-slider");
   if (timeWindowSlider) {
+    // Max position is the number of possible starting positions
     const maxSliderValue = Math.max(0, allTimePoints - maxTimePoints);
     timeWindowSlider.max = maxSliderValue;
     timeWindowSlider.disabled = maxSliderValue <= 0;
   }
 
   if (allTimePoints > maxTimePoints) {
+    // Use the dashboard state's time window position
     const maxStartIndex = allTimePoints - maxTimePoints;
     const startIndex = Math.min(Math.max(0, dashboardState.timeWindowPosition), maxStartIndex);
 
+    // Take only 24 consecutive times
     uniqueTimes = uniqueTimes.slice(startIndex, startIndex + maxTimePoints);
 
+    // Update the display value
     const timeWindowValue = document.getElementById("time-window-value");
     if (timeWindowValue) {
       timeWindowValue.textContent = `${startIndex+1}-${startIndex+uniqueTimes.length} of ${allTimePoints}`;
@@ -724,23 +752,28 @@ function renderDayHeatmap() {
 
     console.log(`Showing time window ${startIndex+1}-${startIndex+uniqueTimes.length} of ${allTimePoints} total time points`);
   } else {
+    // Update the display value for small datasets
     const timeWindowValue = document.getElementById("time-window-value");
     if (timeWindowValue) {
       timeWindowValue.textContent = `All ${allTimePoints} time points`;
     }
   }
 
+  // Get sorted list of damage types, filtered if a specific one is selected
   let damageTypes = Object.keys(damageTypeLabels);
 
+  // Filter to show only the selected damage type if one is specifically chosen
   if (dashboardState.damageTypeFilter !== "all") {
     console.log("Filtering heatmap to show only:", dashboardState.damageTypeFilter);
     damageTypes = [dashboardState.damageTypeFilter];
   }
 
+  // Prepare data for D3 heatmap
   const heatmapData = [];
 
   damageTypes.forEach((damageType, row) => {
     uniqueTimes.forEach((time, col) => {
+      // Find the value for this damage type and time
       const values = timeGroups[col][1];
       const found = values.find(d => d.damageType === damageType);
       const value = found ? found.value : null;
@@ -756,33 +789,41 @@ function renderDayHeatmap() {
     });
   });
 
+  // Get container width
   const containerWidth = container.clientWidth || 800;
 
+  // Adjusted margins - increased top margin for label positioning
   const margin = { top: 90, right: 40, bottom: 80, left: 180 };
   const availableWidth = containerWidth - margin.left - margin.right;
 
-  const cellWidth = 60;
+  // Set much smaller fixed cell width for a more compact display
+  // This reduces the need for horizontal scrolling
+  const cellWidth = 60; // Much smaller fixed width for each cell
 
+  // Decrease cell height to make more compact
   const cellHeight = 120;
 
   const width = uniqueTimes.length * cellWidth + margin.left + margin.right;
   const height = damageTypes.length * cellHeight + margin.top + margin.bottom;
 
+  // Create SVG with actual height and scrollable width
   const svg = d3.select(container)
     .append("svg")
-    .attr("width", width)
-    .attr("height", height)
+    .attr("width", width) // Use actual calculated width for horizontal scrolling
+    .attr("height", height) // Use actual calculated height
     .attr("viewBox", `0 0 ${width} ${height}`)
-    .attr("preserveAspectRatio", "xMinYMid meet")
+    .attr("preserveAspectRatio", "xMinYMid meet") // Use xMin to align left
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
+  // Define color scale with higher contrast
   const colorScale = d3.scaleLinear()
-    .domain([0, heatmapMax * 0.3, heatmapMax])
-    .range(["#f7fbff", "#fdae61", "#d73027"])
+    .domain([0, heatmapMax * 0.3, heatmapMax]) // Use three-point scale for higher contrast in middle ranges
+    .range(["#f7fbff", "#fdae61", "#d73027"]) // White -> Orange -> Red for better contrast
     .clamp(true)
-    .unknown("#444444");
+    .unknown("#444444"); // Darker gray for missing values for better contrast
 
+  // Add row labels (damage types) - Adjusted font size for smaller cells
   svg.selectAll(".row-label")
     .data(damageTypes)
     .enter()
@@ -792,32 +833,37 @@ function renderDayHeatmap() {
     .attr("y", (d, i) => i * cellHeight + cellHeight / 2)
     .attr("text-anchor", "end")
     .attr("alignment-baseline", "middle")
-    .attr("font-size", "16px")
+    .attr("font-size", "16px") // Smaller font size for more compact display
     .attr("font-weight", d => (dashboardState.damageTypeFilter === d) ? "bold" : "normal")
     .attr("fill", "white")
     .text(d => damageTypeLabels[d])
     .style("cursor", "pointer")
     .on("click", (event, d) => {
+      // Toggle damage type filter
       dashboardState.damageTypeFilter = (dashboardState.damageTypeFilter === d) ? "all" : d;
 
+      // Update the dropdown to match
       document.getElementById("damage-type-filter").value = dashboardState.damageTypeFilter;
 
+      // Re-render all components
       updateDashboard();
     });
 
+  // Add column labels (times) - Positioned higher to avoid overlap with cells
   svg.selectAll(".col-label")
     .data(uniqueTimes)
     .enter()
     .append("text")
     .attr("class", "col-label")
     .attr("x", (d, i) => i * cellWidth + cellWidth / 2)
-    .attr("y", -35)
-    .attr("transform", (d, i) => `rotate(-60, ${i * cellWidth + cellWidth / 2}, -35)`)
+    .attr("y", -35) // Moved significantly higher up to avoid overlapping with cells
+    .attr("transform", (d, i) => `rotate(-60, ${i * cellWidth + cellWidth / 2}, -35)`) // Adjusted rotation point
     .attr("text-anchor", "end")
     .attr("font-size", "12px")
     .attr("fill", "white")
     .text(d => d);
 
+  // Create cell groups for the heatmap
   const cells = svg.selectAll(".cell")
     .data(heatmapData)
     .enter()
@@ -826,24 +872,28 @@ function renderDayHeatmap() {
     .attr("transform", d => `translate(${d.col * cellWidth}, ${d.row * cellHeight})`)
     .style("cursor", "pointer");
 
+  // Add cell rectangles with values - more compact grid appearance
   cells.append("rect")
-    .attr("width", cellWidth - 1)
+    .attr("width", cellWidth - 1) // Minimal gap between cells
     .attr("height", cellHeight - 1)
     .attr("fill", d => d.value === null ? colorScale.unknown() : colorScale(d.value))
     .attr("stroke", d => d.isAboveThreshold ? colors.secondary : "none")
     .attr("stroke-width", d => d.isAboveThreshold ? 2 : 0)
-    .attr("rx", 2)
+    .attr("rx", 2) // Less rounded corners for more grid-like appearance
     .attr("ry", 2);
 
+  // No text in cells, just comprehensive tooltips
   cells.append("title")
     .text(d => `${damageTypeLabels[d.damageType]} at ${d.time}: ${d.value === null ? "N/A" : d.value.toFixed(2)}`);
 
+  // Add a color legend - smaller for more compact display
   const legendWidth = 200;
   const legendHeight = 15;
 
   const legendX = (uniqueTimes.length * cellWidth - legendWidth) / 2;
   const legendY = damageTypes.length * cellHeight + 30;
 
+  // Create gradient for legend
   const defs = svg.append("defs");
   const linearGradient = defs.append("linearGradient")
     .attr("id", "heatmap-gradient")
@@ -860,6 +910,7 @@ function renderDayHeatmap() {
     .attr("offset", "100%")
     .attr("stop-color", colorScale.range()[1]);
 
+  // Legend rectangle
   svg.append("rect")
     .attr("x", legendX)
     .attr("y", legendY)
@@ -867,6 +918,7 @@ function renderDayHeatmap() {
     .attr("height", legendHeight)
     .style("fill", "url(#heatmap-gradient)");
 
+  // Legend axis - more ticks
   const legendScale = d3.scaleLinear()
     .domain([0, heatmapMax])
     .range([0, legendWidth]);
@@ -882,6 +934,7 @@ function renderDayHeatmap() {
     .style("fill", "white")
     .style("font-size", "12px");
 
+  // Legend title
   svg.append("text")
     .attr("x", legendX + legendWidth / 2)
     .attr("y", legendY - 15)
@@ -890,6 +943,7 @@ function renderDayHeatmap() {
     .attr("font-size", "14px")
     .text("Uncertainty Value");
 
+  // Add threshold indicator on legend
   svg.append("line")
     .attr("x1", legendX + legendScale(dashboardState.uncertaintyThreshold))
     .attr("y1", legendY - 10)
@@ -907,7 +961,9 @@ function renderDayHeatmap() {
     .attr("font-size", "12px")
     .text(`Threshold: ${dashboardState.uncertaintyThreshold.toFixed(1)}`);
 
+  // Add highlighting interaction
   cells.on("mouseover", function(event, d) {
+    // Highlight row
     svg.selectAll(".cell")
       .filter(cell => cell.row === d.row)
       .select("rect")
@@ -915,6 +971,7 @@ function renderDayHeatmap() {
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
+    // Highlight column
     svg.selectAll(".cell")
       .filter(cell => cell.col === d.col)
       .select("rect")
@@ -922,11 +979,13 @@ function renderDayHeatmap() {
       .attr("stroke", "#fff")
       .attr("stroke-width", 1);
 
+    // Also highlight the corresponding row label
     svg.selectAll(".row-label")
       .filter((_, i) => i === d.row)
       .attr("font-weight", "bold")
       .attr("fill", colors.primary);
 
+    // And highlight column label
     svg.selectAll(".col-label")
       .filter((_, i) => i === d.col)
       .attr("font-weight", "bold")
@@ -934,6 +993,7 @@ function renderDayHeatmap() {
   });
 
   cells.on("mouseout", function(event, d) {
+    // Reset row
     svg.selectAll(".cell")
       .filter(cell => cell.row === d.row)
       .select("rect")
@@ -941,6 +1001,7 @@ function renderDayHeatmap() {
       .attr("stroke", cell => cell.isAboveThreshold ? colors.secondary : "none")
       .attr("stroke-width", cell => cell.isAboveThreshold ? 2 : 0);
 
+    // Reset column
     svg.selectAll(".cell")
       .filter(cell => cell.col === d.col)
       .select("rect")
@@ -948,30 +1009,38 @@ function renderDayHeatmap() {
       .attr("stroke", cell => cell.isAboveThreshold ? colors.secondary : "none")
       .attr("stroke-width", cell => cell.isAboveThreshold ? 2 : 0);
 
+    // Reset row label
     svg.selectAll(".row-label")
       .filter((_, i) => i === d.row)
       .attr("font-weight", label => (dashboardState.damageTypeFilter === damageTypes[d.row]) ? "bold" : "normal")
       .attr("fill", "white");
 
+    // Reset column label
     svg.selectAll(".col-label")
       .filter((_, i) => i === d.col)
       .attr("font-weight", "normal")
       .attr("fill", "white");
   });
 
+  // Add click action for cells
   cells.on("click", (event, d) => {
+    // Toggle damage type filter
     dashboardState.damageTypeFilter = (dashboardState.damageTypeFilter === d.damageType) ? "all" : d.damageType;
 
+    // Update the dropdown to match
     document.getElementById("damage-type-filter").value = dashboardState.damageTypeFilter;
 
+    // Re-render all components
     updateDashboard();
   });
 }
 
+// Render hourly trends chart
 function renderHourlyChart() {
   const container = document.getElementById("hourly-chart-container");
   container.innerHTML = '';
 
+  // Create legend items
   const legendContainer = document.getElementById("hourly-legend");
   legendContainer.innerHTML = Object.entries(damageTypeLabels)
     .map(([key, label]) => {
@@ -985,10 +1054,12 @@ function renderHourlyChart() {
     })
     .join('');
 
+  // Add click events to legend items
   legendContainer.querySelectorAll('.legend-item').forEach(item => {
     item.addEventListener('click', function() {
       const damageType = this.getAttribute('data-type');
 
+      // Toggle visibility
       if (dashboardState.visibleDamageTypes.has(damageType)) {
         dashboardState.visibleDamageTypes.delete(damageType);
         this.classList.add('inactive');
@@ -997,16 +1068,20 @@ function renderHourlyChart() {
         this.classList.remove('inactive');
       }
 
+      // Re-render the chart
       renderHourlyChart();
     });
   });
 
+  // Filter for visible damage types
   const visibleTypes = Array.from(dashboardState.visibleDamageTypes);
 
+  // Set up dimensions - responsive
   const width = container.clientWidth;
   const height = Math.max(350, Math.min(500, window.innerHeight * 0.4));
   const margin = {top: 30, right: 50, bottom: 60, left: 60};
 
+  // Create SVG with responsive sizing
   const svg = d3.select(container)
     .append("svg")
       .attr("width", "100%")
@@ -1016,6 +1091,7 @@ function renderHourlyChart() {
     .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
+  // Set up scales
   const x = d3.scaleLinear()
     .domain([0, 23])
     .range([0, width - margin.left - margin.right]);
@@ -1026,17 +1102,20 @@ function renderHourlyChart() {
     }) * 1.1])
     .range([height - margin.top - margin.bottom, 0]);
 
+  // Add X axis
   svg.append("g")
     .attr("transform", `translate(0,${height - margin.top - margin.bottom})`)
     .call(d3.axisBottom(x).tickFormat(h => `${h}:00`))
     .selectAll("text")
       .style("fill", "white");
 
+  // Add Y axis
   svg.append("g")
     .call(d3.axisLeft(y))
     .selectAll("text")
       .style("fill", "white");
 
+  // Add labels
   svg.append("text")
     .attr("transform", `translate(${(width - margin.left - margin.right) / 2}, ${height - margin.top})`)
     .style("text-anchor", "middle")
@@ -1051,6 +1130,7 @@ function renderHourlyChart() {
     .style("fill", "white")
     .text("Uncertainty (Std Dev)");
 
+  // Add threshold line
   svg.append("line")
     .attr("x1", 0)
     .attr("y1", y(dashboardState.uncertaintyThreshold))
@@ -1060,13 +1140,16 @@ function renderHourlyChart() {
     .attr("stroke-width", 2)
     .attr("stroke-dasharray", "5,5");
 
+  // Add lines for each visible damage type
   visibleTypes.forEach(type => {
+    // Filter out null values
     const lineData = hourlyData
       .map(d => ({hour: d.hour, value: d[type]}))
       .filter(d => d.value !== null && d.value !== undefined);
 
-    if (lineData.length < 2) return;
+    if (lineData.length < 2) return; // Need at least 2 points for a line
 
+    // Add line
     svg.append("path")
       .datum(lineData)
       .attr("fill", "none")
@@ -1078,6 +1161,7 @@ function renderHourlyChart() {
         .curve(d3.curveMonotoneX)
       );
 
+    // Add points
     svg.selectAll(`.point-${type}`)
       .data(lineData)
       .enter()
@@ -1092,40 +1176,54 @@ function renderHourlyChart() {
   });
 }
 
+// Render time period analysis table
 function renderTimePeriodTable() {
   const container = document.getElementById("time-period-container");
 
+  // Get container width - same approach as hourly chart
   const containerWidth = container.clientWidth || window.innerWidth - 40;
 
+  // Create table headers
   const headers = ['Time Period', ...Object.values(damageTypeLabels)].map(
     (header, index) => {
+      // First column (Time Period) gets appropriate width, but not too much
       const width = index === 0 ? '15%' : `${85 / Object.values(damageTypeLabels).length}%`;
       return `<th style="width: ${width};">${header}</th>`;
     }
   ).join('');
 
+  // Create table rows
   const rows = timePeriods.map(period => {
+    // Check if this period is selected
     const isSelected = dashboardState.timePeriodFilter === period.name.toLowerCase();
     const rowClass = isSelected ? 'selected-row' : '';
 
+    // Create cells
     const cells = Object.keys(damageTypeLabels).map(type => {
       const value = period.values[type];
       const displayValue = value !== null ? value.toFixed(2) : "N/A";
 
+      // Check if value is above threshold
       const isAboveThreshold = value !== null && value > dashboardState.uncertaintyThreshold;
 
+      // Create cell with appropriate styling
+      // Add background color with higher contrast based on value intensity
       let bgColor = "transparent";
       if (value !== null) {
+        // Use the same high-contrast color scale as the heatmaps
         let color;
         if (value <= heatmapMax * 0.3) {
+          // Linear interpolation between white and orange
           const intensity = value / (heatmapMax * 0.3);
           color = d3.interpolateRgb("#f7fbff", "#fdae61")(intensity);
         } else {
+          // Linear interpolation between orange and red
           const intensity = (value - heatmapMax * 0.3) / (heatmapMax * 0.7);
           color = d3.interpolateRgb("#fdae61", "#d73027")(intensity);
         }
+        // Add transparency for background
         const rgb = d3.color(color).rgb();
-        bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`;
+        bgColor = `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, 0.7)`; // Higher opacity for better contrast
       }
 
       const cellClass = isAboveThreshold ? 'above-threshold' : '';
@@ -1138,6 +1236,7 @@ function renderTimePeriodTable() {
             </tr>`;
   }).join('');
 
+  // Create the table with precise width matching the hourly chart
   container.innerHTML = `
     <table style="width: ${containerWidth}px; height: 100%;">
       <thead>
@@ -1149,26 +1248,33 @@ function renderTimePeriodTable() {
     </table>
   `;
 
+  // Add click event to rows
   container.querySelectorAll('tbody tr').forEach(row => {
     row.addEventListener('click', function() {
       const period = this.getAttribute('data-period');
 
+      // Update filter
       dashboardState.timePeriodFilter =
         dashboardState.timePeriodFilter === period ? "all" : period;
 
+      // Update selector
       document.getElementById("time-period").value = dashboardState.timePeriodFilter;
 
+      // Re-render all components
       updateDashboard();
     });
   });
 }
 
+// Function to render network diagram - FULLY FIXED to remove N/A
 function renderNetworkDiagram() {
   const container = document.getElementById("network-container");
 
+  // Create controls
   const controlsDiv = document.createElement("div");
   controlsDiv.className = "network-controls";
 
+  // Damage type dropdown
   const damageTypeLabel = document.createElement("label");
   damageTypeLabel.textContent = "Damage Type:";
   damageTypeLabel.setAttribute("for", "network-damage-type");
@@ -1183,6 +1289,7 @@ function renderNetworkDiagram() {
     damageTypeSelect.appendChild(option);
   });
 
+  // Time slider
   const sliderLabel = document.createElement("label");
   sliderLabel.textContent = "Time:";
   sliderLabel.setAttribute("for", "network-time-slider");
@@ -1204,6 +1311,7 @@ function renderNetworkDiagram() {
   sliderContainer.appendChild(slider);
   sliderContainer.appendChild(timeLabel);
 
+  // Add controls to container
   controlsDiv.appendChild(damageTypeLabel);
   controlsDiv.appendChild(damageTypeSelect);
   controlsDiv.appendChild(sliderLabel);
@@ -1212,6 +1320,7 @@ function renderNetworkDiagram() {
   container.innerHTML = '';
   container.appendChild(controlsDiv);
 
+  // Create diagram container - responsive height
   const diagramContainer = document.createElement("div");
   diagramContainer.id = "network-diagram";
   diagramContainer.style.width = "100%";
@@ -1219,40 +1328,48 @@ function renderNetworkDiagram() {
   diagramContainer.style.backgroundColor = "#4292c6";
   container.appendChild(diagramContainer);
 
+  // Function to create network diagram
   function createNetworkDiagram() {
     const selectedTime = timeValues[slider.value];
     const selectedDamage = damageTypeSelect.value;
 
     timeLabel.textContent = `Time: ${selectedTime}`;
 
+    // Get data for the selected time
     const dataAtTime = Object.fromEntries(
       avgDamageData
         .filter(d => d.time_5min === selectedTime)
         .map(d => [d.location, d])
     );
 
+    // Calculate max value for scaling
     const values = Object.values(dataAtTime)
       .map(d => parseFloat(d[selectedDamage]))
       .filter(v => !isNaN(v));
 
     const maxValue = values.length > 0 ? Math.max(...values) : 1;
 
+    // Function to scale circle size
     function scaleSize(value, maxValue) {
-      if (value === null || value === undefined || isNaN(value)) return 20;
+      if (value === null || value === undefined || isNaN(value)) return 20; // Default size for missing data
 
       const minRadius = 20;
       const maxRadius = 100;
+      // Normalize the value
       const normalizedValue = maxValue > 0 ? value / maxValue : 0.5;
       return minRadius + (normalizedValue * (maxRadius - minRadius));
     }
 
+    // Create nodes and links
     const nodes = locations.map(loc => {
       const locData = dataAtTime[loc];
       let value = locData ? parseFloat(locData[selectedDamage]) : null;
       const isMissing = value === null || value === undefined || isNaN(value);
 
+      // Keep the raw value for display - CHANGED: use empty string instead of "N/A"
       const displayValue = isMissing ? "" : value.toFixed(2);
 
+      // Set a default value for visualization purpose if missing
       if (isMissing) value = 0;
 
       return {
@@ -1260,7 +1377,7 @@ function renderNetworkDiagram() {
         x: locationPositions[loc].x,
         y: locationPositions[loc].y,
         r: scaleSize(value, maxValue),
-        fill: isMissing ? "#e76f51" : "#4292c6",
+        fill: isMissing ? "#e76f51" : "#4292c6", // Red for missing, blue for data
         opacity: isMissing ? 0.7 : 0.9,
         stroke: "white",
         strokeWidth: 1,
@@ -1272,6 +1389,7 @@ function renderNetworkDiagram() {
     const links = [];
     for (const [source, targets] of Object.entries(neighborLinks)) {
       for (const target of targets) {
+        // Create links in both directions for better visualization
         links.push({
           source: +source,
           target,
@@ -1283,11 +1401,14 @@ function renderNetworkDiagram() {
       }
     }
 
+    // Clear previous diagram
     d3.select("#network-diagram").html("");
 
+    // Set up dimensions
     const width = diagramContainer.clientWidth;
     const height = diagramContainer.clientHeight;
 
+    // Create SVG
     const svg = d3.select("#network-diagram")
       .append("svg")
         .attr("width", width)
@@ -1295,6 +1416,7 @@ function renderNetworkDiagram() {
         .attr("viewBox", "-2 -2 4 4")
         .attr("preserveAspectRatio", "xMidYMid meet");
 
+    // Add links
     svg.selectAll("line")
       .data(links)
       .enter()
@@ -1307,6 +1429,7 @@ function renderNetworkDiagram() {
         .attr("stroke-width", 0.02)
         .attr("stroke-opacity", 0.5);
 
+    // Add node groups
     const nodeGroups = svg.selectAll("g.node")
       .data(nodes)
       .enter()
@@ -1314,13 +1437,15 @@ function renderNetworkDiagram() {
         .attr("class", "node")
         .attr("transform", d => `translate(${d.x}, ${d.y})`);
 
+    // Add circles for nodes
     nodeGroups.append("circle")
-      .attr("r", d => d.r / 100)
+      .attr("r", d => d.r / 100) // Scale down for the viewBox
       .attr("fill", d => d.fill)
       .attr("opacity", d => d.opacity)
       .attr("stroke", d => d.stroke)
       .attr("stroke-width", d => d.strokeWidth / 100);
 
+    // Add labels for IDs only
     nodeGroups.append("text")
       .attr("text-anchor", "middle")
       .attr("dy", "0.0em")
@@ -1329,6 +1454,7 @@ function renderNetworkDiagram() {
       .attr("font-weight", "bold")
       .text(d => d.id);
 
+    // Add labels for values - BUT ONLY FOR NON-MISSING VALUES
     nodeGroups.filter(d => !d.isMissing)
       .append("text")
       .attr("text-anchor", "middle")
@@ -1337,6 +1463,7 @@ function renderNetworkDiagram() {
       .attr("font-size", "0.12px")
       .text(d => d.value);
 
+    // Add title element for tooltip
     nodeGroups.append("title")
       .text(d => {
         const tooltipValue = d.isMissing ? "No data available" : d.value;
@@ -1344,18 +1471,23 @@ function renderNetworkDiagram() {
       });
   }
 
+  // Set up event listeners
   damageTypeSelect.addEventListener("change", createNetworkDiagram);
   slider.addEventListener("input", createNetworkDiagram);
 
+  // Initial render
   createNetworkDiagram();
 }
 
+// Function to render bubble chart
 function renderBubbleChart() {
   const container = document.getElementById("bubble-chart-container");
 
+  // Create controls
   const controlsDiv = document.createElement("div");
   controlsDiv.className = "bubble-controls";
 
+  // Damage type dropdown
   const damageTypeLabel = document.createElement("label");
   damageTypeLabel.textContent = "Damage Type:";
   damageTypeLabel.setAttribute("for", "bubble-damage-type");
@@ -1370,24 +1502,31 @@ function renderBubbleChart() {
     damageTypeSelect.appendChild(option);
   });
 
+  // Add controls to container
   controlsDiv.appendChild(damageTypeLabel);
   controlsDiv.appendChild(damageTypeSelect);
 
   container.innerHTML = '';
   container.appendChild(controlsDiv);
 
+  // Create chart container - responsive height
   const chartContainer = document.createElement("div");
   chartContainer.id = "bubble-chart";
+  // Responsive height based on viewport
   chartContainer.style.height = Math.max(500, Math.min(700, window.innerHeight * 0.5)) + "px";
   container.appendChild(chartContainer);
 
+  // Function to update the bubble chart
   function updateBubbleChart() {
     const selectedDamage = damageTypeSelect.value;
 
+    // Filter data for selected damage type
     const filteredData = bubbleData.filter(d => d.damageType === selectedDamage);
 
+    // Get unique locations for y-axis
     const locationDomain = [...new Set(filteredData.map(d => d.location))].sort((a, b) => a - b);
 
+    // Set up dimensions - fully responsive
     const containerWidth = chartContainer.clientWidth || window.innerWidth - 40;
     const containerHeight = chartContainer.clientHeight || 500;
 
@@ -1395,8 +1534,10 @@ function renderBubbleChart() {
     const height = containerHeight;
     const margin = {top: 30, right: 20, bottom: 60, left: 60};
 
+    // Clear previous chart
     d3.select("#bubble-chart").html("");
 
+    // Create chart using Plot library - with responsive settings
     const chart = Plot.plot({
       width: width,
       height: height,
@@ -1442,16 +1583,21 @@ function renderBubbleChart() {
     d3.select("#bubble-chart").node().appendChild(chart);
   }
 
+  // Set up event listeners
   damageTypeSelect.addEventListener("change", updateBubbleChart);
 
+  // Initial render
   updateBubbleChart();
 }
 
+// Function to create an overview heatmap showing the entire timeline
 function renderOverviewHeatmap() {
   const container = document.getElementById("overview-heatmap-container");
 
+  // Clear previous content
   container.innerHTML = "";
 
+  // Get data for the selected day
   const selectedDayData = dayGroups[dashboardState.selectedDay] || [];
 
   if (selectedDayData.length === 0) {
@@ -1459,11 +1605,13 @@ function renderOverviewHeatmap() {
     return;
   }
 
+  // Extract only HH:MM from the time_string
   const timeFormat = d => {
     const timeString = d.time_string;
-    return timeString.split(" ")[1].substring(0, 5);
+    return timeString.split(" ")[1].substring(0, 5); // Just get HH:MM
   };
 
+  // Group by unique time strings
   const timeGroups = d3.groups(selectedDayData, timeFormat);
   timeGroups.sort((a, b) => {
     const timeA = a[0];
@@ -1473,14 +1621,15 @@ function renderOverviewHeatmap() {
 
   const allTimes = timeGroups.map(group => group[0]);
 
+  // Get the total number of time points and the current window
   const maxTimePoints = 24;
-  const allTimePoints = allTimes.length;
-
   const selectedTimeStart = Math.min(dashboardState.timeWindowPosition, Math.max(0, allTimes.length - maxTimePoints));
   const selectedTimeEnd = Math.min(selectedTimeStart + maxTimePoints, allTimes.length);
 
+  // Get sorted list of damage types
   const damageTypes = Object.keys(damageTypeLabels);
 
+  // Calculate average uncertainty for each time point (across all damage types)
   const averagesByTime = allTimes.map((time, timeIndex) => {
     const timeData = timeGroups[timeIndex][1];
     const values = timeData.map(d => d.value).filter(v => v !== null && v !== undefined);
@@ -1492,13 +1641,15 @@ function renderOverviewHeatmap() {
     };
   });
 
-  const cellWidth = 8;
-  const cellHeight = 120;
+  // Set up dimensions for overview heatmap - much more compact
+  const cellWidth = 8; // Extremely narrow cells for overview to see trend at a glance
+  const cellHeight = 120; // Full height for the overview
   const margin = { top: 40, right: 20, bottom: 40, left: 60 };
 
   const width = allTimes.length * cellWidth + margin.left + margin.right;
   const height = cellHeight + margin.top + margin.bottom;
 
+  // Create SVG
   const svg = d3.select(container)
     .append("svg")
     .attr("width", width)
@@ -1508,13 +1659,15 @@ function renderOverviewHeatmap() {
     .append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
+  // Define color scale with higher contrast - matching the main heatmap
   const colorScale = d3.scaleLinear()
-    .domain([0, heatmapMax * 0.3, heatmapMax])
-    .range(["#f7fbff", "#fdae61", "#d73027"])
+    .domain([0, heatmapMax * 0.3, heatmapMax]) // Use three-point scale for higher contrast
+    .range(["#f7fbff", "#fdae61", "#d73027"]) // White -> Orange -> Red for better contrast
     .clamp(true)
-    .unknown("#444444");
+    .unknown("#444444"); // Darker gray for missing values
 
-  const labelStep = Math.max(1, Math.floor(allTimes.length / 5));
+  // Add time labels (just a few for reference) - show fewer with narrower cells
+  const labelStep = Math.max(1, Math.floor(allTimes.length / 5)); // Show at most 5 labels with narrower cells
   svg.selectAll(".overview-time-label")
     .data(allTimes.filter((_, i) => i % labelStep === 0))
     .enter()
@@ -1526,10 +1679,12 @@ function renderOverviewHeatmap() {
     .attr("font-size", "10px")
     .attr("fill", "white")
     .text(d => {
+      // Only show hours without minutes for more concise labels
       const timeParts = d.split(':');
-      return timeParts[0];
+      return timeParts[0]; // Just return hours part
     });
 
+  // Add overview title on the Y axis
   svg.append("text")
     .attr("x", -cellHeight / 2)
     .attr("y", -40)
@@ -1539,6 +1694,7 @@ function renderOverviewHeatmap() {
     .attr("fill", "white")
     .text("Avg Uncertainty");
 
+  // Create cells for the heatmap
   const cells = svg.selectAll(".overview-cell")
     .data(averagesByTime)
     .enter()
@@ -1547,6 +1703,7 @@ function renderOverviewHeatmap() {
     .attr("transform", d => `translate(${d.timeIndex * cellWidth}, 0)`)
     .style("cursor", "pointer");
 
+  // Add rectangles for cells
   cells.append("rect")
     .attr("width", cellWidth - 1)
     .attr("height", cellHeight)
@@ -1554,49 +1711,61 @@ function renderOverviewHeatmap() {
     .attr("stroke", d => d.isInSelectedWindow ? "white" : "none")
     .attr("stroke-width", d => d.isInSelectedWindow ? 2 : 0);
 
+  // Add selection highlight - make it more visible with narrower cells
   svg.append("rect")
     .attr("class", "selection-highlight")
     .attr("x", selectedTimeStart * cellWidth)
     .attr("y", 0)
     .attr("width", Math.min(maxTimePoints, allTimes.length - selectedTimeStart) * cellWidth)
     .attr("height", cellHeight)
-    .attr("fill", "rgba(255, 255, 255, 0.15)")
+    .attr("fill", "rgba(255, 255, 255, 0.15)") // Slight fill for better visibility
     .attr("stroke", "white")
     .attr("stroke-width", 2)
-    .attr("stroke-dasharray", "3,2")
+    .attr("stroke-dasharray", "3,2") // Smaller dash pattern for narrower cells
     .attr("pointer-events", "none");
 
+  // Add click handler to select time window
   cells.on("click", (event, d) => {
+    // Calculate new position ensuring we show a full window if possible
     const newPosition = Math.min(d.timeIndex, allTimes.length - maxTimePoints);
     dashboardState.timeWindowPosition = Math.max(0, newPosition);
 
+    // Update the slider
     const timeWindowSlider = document.getElementById("time-window-slider");
     if (timeWindowSlider) {
       timeWindowSlider.value = dashboardState.timeWindowPosition;
     }
 
+    // Rerender the heatmaps
     renderDayHeatmap();
     renderOverviewHeatmap();
   });
 
+  // Add tooltips
   cells.append("title")
     .text(d => `Time: ${d.time}\nAvg Uncertainty: ${d.value.toFixed(2)}`);
 }
 
+// Update dashboard based on filters
 function updateDashboard() {
+  // Get filter values
   const damageTypeFilter = document.getElementById("damage-type-filter").value;
   const timePeriodFilter = document.getElementById("time-period").value;
   const uncertaintyThreshold = parseFloat(document.getElementById("uncertainty-threshold").value);
 
-  let selectedDay = "day1";
+  // Check if day-select element exists and has options before getting its value
+  let selectedDay = "day1"; // Default value
   const daySelectElement = document.getElementById("day-select");
 
+  // If dropdown has no options or only the placeholder, try to populate it
   if (daySelectElement && (daySelectElement.options.length === 0 ||
      (daySelectElement.options.length === 1 && daySelectElement.options[0].text === "Loading days..."))) {
     console.warn("Day select element has no options or only placeholder, populating now");
 
+    // Clear existing options (including placeholder)
     daySelectElement.innerHTML = "";
 
+    // Add new options if we have unique days data
     if (uniqueDays && uniqueDays.length > 0) {
       uniqueDays.forEach((day, index) => {
         const option = document.createElement("option");
@@ -1606,6 +1775,7 @@ function updateDashboard() {
       });
       console.log("Added", uniqueDays.length, "day options to dropdown");
     } else {
+      // If no unique days data, add a default option
       const option = document.createElement("option");
       option.value = "day1";
       option.textContent = "Day 1";
@@ -1614,6 +1784,7 @@ function updateDashboard() {
     }
   }
 
+  // Now get the selected value
   if (daySelectElement && daySelectElement.options.length > 0) {
     selectedDay = daySelectElement.value;
     console.log("Selected day:", selectedDay, "from dropdown with", daySelectElement.options.length, "options");
@@ -1628,17 +1799,22 @@ function updateDashboard() {
     selectedDay
   });
 
+  // Update state
   dashboardState.damageTypeFilter = damageTypeFilter;
   dashboardState.timePeriodFilter = timePeriodFilter;
   dashboardState.uncertaintyThreshold = uncertaintyThreshold;
   dashboardState.selectedDay = selectedDay;
 
+  // Update visibleDamageTypes based on the filter selection
   if (damageTypeFilter === "all") {
+    // Show all damage types
     dashboardState.visibleDamageTypes = new Set(Object.keys(damageTypeLabels));
   } else {
+    // Show only the selected damage type
     dashboardState.visibleDamageTypes = new Set([damageTypeFilter]);
   }
 
+  // Log current state for debugging
   console.log("Dashboard state updated:", {
     damageType: dashboardState.damageTypeFilter,
     timePeriod: dashboardState.timePeriodFilter,
@@ -1646,13 +1822,16 @@ function updateDashboard() {
     day: dashboardState.selectedDay
   });
 
+  // Display current threshold value
   document.getElementById("threshold-value").textContent = uncertaintyThreshold.toFixed(1);
 
-  renderOverviewHeatmap();
+  // Render all components
+  renderOverviewHeatmap(); // Render the overview first
   renderDayHeatmap();
   renderHourlyChart();
   renderTimePeriodTable();
 
+  // Render network and bubble charts separately to avoid UI freezing
   setTimeout(() => {
     try {
       renderNetworkDiagram();
@@ -1672,18 +1851,23 @@ function updateDashboard() {
   }, 200);
 }
 
+// Initialize event listeners
 function initializeEventListeners() {
+  // Damage type filter - make sure it updates the dashboard
   document.getElementById("damage-type-filter").addEventListener("change", function() {
     console.log("Damage type changed to:", this.value);
     dashboardState.damageTypeFilter = this.value;
     updateDashboard();
   });
 
+  // Time period filter
   document.getElementById("time-period").addEventListener("change", function() {
     updateDashboard();
   });
 
+  // Day select
   document.getElementById("day-select").addEventListener("change", function() {
+    // Reset time window position when day changes
     dashboardState.timeWindowPosition = 0;
     if (document.getElementById("time-window-slider")) {
       document.getElementById("time-window-slider").value = 0;
@@ -1691,41 +1875,52 @@ function initializeEventListeners() {
     updateDashboard();
   });
 
+  // Time window slider
   document.getElementById("time-window-slider").addEventListener("input", function() {
     dashboardState.timeWindowPosition = parseInt(this.value);
     updateDashboard();
   });
 
+  // Uncertainty threshold
   document.getElementById("uncertainty-threshold").addEventListener("input", function() {
     updateDashboard();
   });
 
+  // Reset button
   document.getElementById("reset-button").addEventListener("click", function() {
     console.log("Resetting dashboard filters");
 
+    // Reset state to initial values
     Object.assign(dashboardState, createDashboardState());
 
+    // Reset form elements
     document.getElementById("damage-type-filter").value = "all";
     document.getElementById("time-period").value = "all";
     document.getElementById("uncertainty-threshold").value = "3.0";
     document.getElementById("day-select").value = Object.keys(dayGroups)[0];
     document.getElementById("time-window-slider").value = "0";
 
+    // Update dashboard
     updateDashboard();
   });
 
+  // Add robust window resize handler
   window.addEventListener("resize", function() {
+    // Debounce resize events
     if (this.resizeTimeout) clearTimeout(this.resizeTimeout);
     this.resizeTimeout = setTimeout(function() {
       console.log("Window resized, updating all visualizations");
 
-      renderHourlyChart();
-      renderTimePeriodTable();
+      // First update critical responsiveness charts
+      renderHourlyChart(); // This should happen first to establish new width
+      renderTimePeriodTable(); // Then this uses the same width
 
+      // Then update other visualizations
       renderDayHeatmap();
       renderNetworkDiagram();
       renderBubbleChart();
 
+      // Check container sizes after resize
       const containers = [
         "#day-heatmap-container",
         "#hourly-chart-container",
@@ -1739,14 +1934,16 @@ function initializeEventListeners() {
           console.log(`${selector} size after resize:`, el.clientWidth, "x", el.clientHeight);
         }
       });
-    }, 300);
+    }, 300); // Slightly longer timeout for complete resize
   });
 }
 
+// Initialize the dashboard
 function initializeDashboard() {
   console.log("Initializing dashboard...");
 
   try {
+    // Log data availability to debug
     console.log("Available data:");
     console.log("- Uncertainty data records:", uncertaintyData.length);
     console.log("- Average damage data records:", avgDamageData.length);
@@ -1754,6 +1951,8 @@ function initializeDashboard() {
     console.log("- Unique days:", uniqueDays);
     console.log("- Time values length:", timeValues.length);
 
+    // Check if we need to manually populate the day selector
+    // This is a safeguard in case the HTML template interpolation didn't work
     const daySelect = document.getElementById("day-select");
     if (daySelect && daySelect.options.length === 0 && uniqueDays && uniqueDays.length > 0) {
       console.log("Day select has no options, populating manually");
@@ -1766,22 +1965,29 @@ function initializeDashboard() {
       console.log("Added day options:", daySelect.options.length);
     }
 
+    // Set up event listeners
     initializeEventListeners();
 
+    // Ensure all inputs are populated with initial values
+    // Check and populate the damage type filter dropdown
     const damageTypeFilter = document.getElementById("damage-type-filter");
     if (damageTypeFilter) {
+      // Clear existing options (except the "All" option)
       const allOption = damageTypeFilter.querySelector('option[value="all"]');
       damageTypeFilter.innerHTML = '';
 
+      // Re-add the "All" option
       if (allOption) {
         damageTypeFilter.appendChild(allOption);
       } else {
+        // Create it if it doesn't exist
         const option = document.createElement('option');
         option.value = 'all';
         option.textContent = 'All Damage Types';
         damageTypeFilter.appendChild(option);
       }
 
+      // Add all damage types
       Object.entries(damageTypeLabels).forEach(([key, label]) => {
         const option = document.createElement('option');
         option.value = key;
@@ -1789,6 +1995,7 @@ function initializeDashboard() {
         damageTypeFilter.appendChild(option);
       });
 
+      // Set the selected value
       damageTypeFilter.value = dashboardState.damageTypeFilter;
     }
 
@@ -1804,6 +2011,7 @@ function initializeDashboard() {
       daySelect.value = dashboardState.selectedDay;
     }
 
+    // Make sure the Network diagram controls are populated
     setTimeout(() => {
       const networkDamageType = document.getElementById("network-damage-type");
       if (networkDamageType && networkDamageType.options.length > 0) {
@@ -1816,7 +2024,8 @@ function initializeDashboard() {
       }
     }, 100);
 
-    renderOverviewHeatmap();
+    // Initialize the dashboard
+    renderOverviewHeatmap(); // Ensure overview is created first
     updateDashboard();
 
     console.log("Dashboard initialized successfully with overview and detail views");
@@ -1825,5 +2034,6 @@ function initializeDashboard() {
   }
 }
 
+// Start the dashboard initialization
 initializeDashboard();
 ```

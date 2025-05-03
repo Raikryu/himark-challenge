@@ -111,18 +111,28 @@ This dashboard brings together multiple visualizations with shared filters and c
 </div>
 
 ```js
-// Import dashboard state management
 import dashboardState, { createGlobalFilterPanel, createHighlightsBox, applyGlobalFilters } from "/components/dashboard-state.js";
 import { dashboardColors, getDamageColor, applyDashboardStyles } from "/components/dashboard-styles.js";
+import { 
+  loadCommonLibraries, 
+  processReportData, 
+  getMetricLabel 
+} from "/components/js.js";
 
-// Apply common dashboard styles
+/**
+ * Dashboard initialization
+ * 
+ * This is the main entry point for the comprehensive dashboard that combines
+ * all visualizations with shared filters and cross-visualization interactivity.
+ */
+
+// Apply standardized styles
 applyDashboardStyles();
 
-// Wait for full page load
+// Initialize the dashboard when DOM is fully loaded
 window.addEventListener('load', initDashboard);
 
 async function initDashboard() {
-  // Add global filters and highlights box
   const filtersContainer = document.getElementById('global-filters-container');
   const highlightsContainer = document.getElementById('highlights-container');
   
@@ -134,54 +144,21 @@ async function initDashboard() {
     highlightsContainer.appendChild(createHighlightsBox());
   }
   
-  // Load D3.js
-  await loadScript('https://d3js.org/d3.v7.min.js');
+  // Use standardized library loading
+  await loadCommonLibraries();
   
-  // Load Leaflet for map visualization
-  await Promise.all([
-    loadStylesheet('https://unpkg.com/leaflet@1.9.4/dist/leaflet.css'),
-    loadScript('https://unpkg.com/leaflet@1.9.4/dist/leaflet.js')
-  ]);
-  
-  // Load Chart.js for charts
-  await loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js');
-  
-  // Load data
   const [geoData, radarData, reportData] = await Promise.all([
     FileAttachment("st_himark_color_extracted_pixels_with_update2.geojson").json(),
     FileAttachment("radar_chart_data.json").json(),
-    FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
-      const data = d3.csvParse(text.replace(/\r\n/g, "\n").trim(), d3.autoType);
-      const parse = d3.timeParse("%d/%m/%Y %H:%M");
-      
-      // Process data
-      data.forEach(d => {
-        d.time = parse(d.time);
-        d.combined_damage = (
-          d.sewer_and_water +
-          d.power +
-          d.roads_and_bridges +
-          d.medical +
-          d.buildings +
-          d.shake_intensity
-        ) / 6;
-      });
-      
-      return data.filter(d => d.time && !isNaN(d.time));
-    })
+    FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(processReportData)
   ]);
   
-  // Initialize mini-visualizations
   initMiniHeatmap(geoData, radarData);
   initMiniRadarChart(radarData);
   initMiniAnimation(reportData);
-  
-  // Initialize statistics
   updateStatistics(radarData, reportData);
   
-  // Subscribe to filter changes to update all visualizations
   dashboardState.subscribe('filters', () => {
-    // Update all visualizations when filters change
     initMiniHeatmap(geoData, radarData);
     initMiniRadarChart(radarData);
     initMiniAnimation(reportData);
@@ -189,15 +166,12 @@ async function initDashboard() {
   });
 }
 
-// Initialize mini heatmap visualization
 function initMiniHeatmap(geoData, radarData) {
   const container = document.getElementById('mini-heatmap');
   if (!container) return;
   
-  // Clear previous content
   container.innerHTML = '';
   
-  // Apply global filters to data
   const filters = dashboardState.getState('filters');
   const filteredRadarData = applyGlobalFilters(radarData, {
     locationKey: 'location',
@@ -211,7 +185,6 @@ function initMiniHeatmap(geoData, radarData) {
     }
   });
   
-  // Create map
   const mapHeight = 300;
   const map = L.map(container, {
     crs: L.CRS.Simple,
@@ -220,23 +193,19 @@ function initMiniHeatmap(geoData, radarData) {
     zoom: -1
   });
   
-  // Define the image bounds
   const width = 1000, height = 800;
   const bounds = [[0, 0], [height, width]];
   map.setMaxBounds(bounds);
   map.fitBounds(bounds);
   
-  // Build damage score map
   const damageMap = {};
   filteredRadarData.forEach(d => {
-    // Use selected metric if specified, otherwise use damage_score
     const metricKey = filters.metric || 'damage_score';
     damageMap[d.location] = filters.metric ? d[filters.metric] : (d.damage_score || 
       ((d.sewer_and_water + d.power + d.roads_and_bridges + d.medical + d.buildings) / 5));
   });
   
-  // Merge damage score into each GeoJSON feature
-  const mapGeoData = JSON.parse(JSON.stringify(geoData)); // Deep clone
+  const mapGeoData = JSON.parse(JSON.stringify(geoData));
   mapGeoData.features.forEach(feature => {
     const regionName = feature.properties.name;
     if (damageMap.hasOwnProperty(regionName)) {
@@ -244,27 +213,22 @@ function initMiniHeatmap(geoData, radarData) {
     }
   });
   
-  // Function to convert pixel coordinates to Leaflet latlngs
   function pixelPolygonToLatLngs(coords) {
     return coords.map(pt => [height - pt[1], pt[0]]);
   }
   
-  // Create a layer group for the polygons
   const layerGroup = L.layerGroup().addTo(map);
   
-  // Create polygons for each feature
   mapGeoData.features.forEach(feature => {
     const regionName = feature.properties.name;
     const damageScore = feature.properties.damage_score;
     
-    // Skip if filtered out or no data
     if (damageScore === undefined) return;
     
     const polygons = feature.geometry.coordinates;
     const ring = polygons[0];
     const latLngRing = pixelPolygonToLatLngs(ring);
     
-    // Create polygon with styling
     const poly = L.polygon(latLngRing, {
       color: "white",
       weight: 2,
@@ -272,15 +236,10 @@ function initMiniHeatmap(geoData, radarData) {
       fillOpacity: 0.7
     }).addTo(layerGroup);
     
-    // Interactive behaviors for cross-visualization communication
     poly.on('click', () => {
-      // Update the shared state
       dashboardState.setState('visualizationStates.heatmap.selectedDistrict', regionName);
-      
-      // Also set this as a global filter
       dashboardState.setState('filters.location', regionName);
       
-      // Update the UI
       const locationFilter = document.getElementById('location-filter');
       if (locationFilter) locationFilter.value = regionName;
     });
@@ -295,21 +254,17 @@ function initMiniHeatmap(geoData, radarData) {
       dashboardState.setState('visualizationStates.heatmap.hoveredDistrict', null);
     });
     
-    // Add tooltip
     poly.bindTooltip(`
       <strong>${regionName}</strong><br>
       ${filters.metric ? getMetricLabel(filters.metric) : 'Damage Score'}: ${damageScore.toFixed(2)}
     `);
   });
   
-  // Add a legend
   const legend = L.control({position: 'bottomright'});
   legend.onAdd = function (map) {
     const div = L.DomUtil.create('div', 'info legend');
     const grades = [0, 2, 4, 6, 8];
-    const labels = [];
     
-    // Create legend content
     div.innerHTML = '<div style="background: rgba(0,0,0,0.6); padding: 5px; border-radius: 5px;">';
     for (let i = 0; i < grades.length; i++) {
       div.innerHTML += 
@@ -322,7 +277,6 @@ function initMiniHeatmap(geoData, radarData) {
   };
   legend.addTo(map);
   
-  // Add link to full visualization
   container.innerHTML += `
     <div class="view-full-link">
       <a href="heatmap" target="_self">View Full Map</a>
@@ -330,27 +284,22 @@ function initMiniHeatmap(geoData, radarData) {
   `;
 }
 
-// Initialize mini radar chart
 function initMiniRadarChart(radarData) {
   const container = document.getElementById('mini-radar');
   if (!container) return;
   
-  // Clear previous content
   container.innerHTML = '<canvas id="miniRadarCanvas" width="400" height="300"></canvas>';
   
-  // Apply global filters
   const filters = dashboardState.getState('filters');
   const filteredData = applyGlobalFilters(radarData, {
     locationKey: 'location'
   });
   
-  // If no data after filtering, show message
   if (filteredData.length === 0) {
     container.innerHTML = '<div class="no-data-message">No data available for the current filters</div>';
     return;
   }
   
-  // Prepare data for radar chart
   const metrics = [
     { key: 'sewer_and_water', displayName: 'Sewer & Water' },
     { key: 'power', displayName: 'Power' },
@@ -359,13 +308,10 @@ function initMiniRadarChart(radarData) {
     { key: 'buildings', displayName: 'Buildings' }
   ];
   
-  // If we have a location filter, show data for just that location
-  // Otherwise show average across all locations
   let chartData;
   let chartTitle;
   
   if (filters.location) {
-    // Show data for selected location
     const locationData = filteredData.find(d => d.location === filters.location);
     
     if (!locationData) {
@@ -387,13 +333,11 @@ function initMiniRadarChart(radarData) {
     
     chartTitle = `Damage Metrics for ${filters.location}`;
   } else {
-    // Calculate averages for each metric
     const avgData = {};
     metrics.forEach(metric => {
       avgData[metric.key] = d3.mean(filteredData, d => d[metric.key]);
     });
     
-    // Create dataset
     chartData = {
       labels: metrics.map(m => m.displayName),
       datasets: [{
@@ -409,7 +353,6 @@ function initMiniRadarChart(radarData) {
     chartTitle = 'Average Damage Metrics Across Districts';
   }
   
-  // Draw the radar chart
   const ctx = document.getElementById('miniRadarCanvas').getContext('2d');
   const radarChart = new Chart(ctx, {
     type: 'radar',
@@ -460,7 +403,6 @@ function initMiniRadarChart(radarData) {
     }
   });
   
-  // Add interaction to update highlights on hover
   ctx.canvas.onmousemove = function(e) {
     const points = radarChart.getElementsAtEventForMode(e, 'nearest', { intersect: true }, false);
     if (points.length) {
@@ -472,7 +414,6 @@ function initMiniRadarChart(radarData) {
     }
   };
   
-  // Add link to full visualization
   container.innerHTML += `
     <div class="view-full-link">
       <a href="radar-chart" target="_self">View Full Chart</a>
@@ -480,32 +421,26 @@ function initMiniRadarChart(radarData) {
   `;
 }
 
-// Initialize mini animation graph
 function initMiniAnimation(reportData) {
   const container = document.getElementById('mini-animation');
   if (!container) return;
   
-  // Clear previous content
   container.innerHTML = '';
   
-  // Apply global filters
   const filters = dashboardState.getState('filters');
   const filteredData = applyGlobalFilters(reportData, {
     locationKey: 'location',
     timeKey: 'time'
   });
   
-  // Group data by time
   const groupedByTime = d3.group(filteredData, d => d3.timeHour(d.time));
   const timestamps = Array.from(groupedByTime.keys()).sort((a, b) => a - b);
   
-  // If no data after filtering, show message
   if (timestamps.length === 0) {
     container.innerHTML = '<div class="no-data-message">No data available for the current filters</div>';
     return;
   }
   
-  // Create controls
   container.innerHTML = `
     <div class="mini-controls">
       <button id="mini-play-btn" class="dashboard-button mini-btn">
@@ -522,11 +457,9 @@ function initMiniAnimation(reportData) {
     <div id="mini-animation-chart" class="mini-chart-container"></div>
   `;
   
-  // Create initial visualization
   const currentIndex = 0;
   renderMiniAnimationFrame(timestamps[currentIndex], groupedByTime);
   
-  // Set up control listeners
   const timeSlider = document.getElementById('mini-timeline-slider');
   const timeDisplay = document.getElementById('mini-time-display');
   const playBtn = document.getElementById('mini-play-btn');
@@ -564,30 +497,24 @@ function initMiniAnimation(reportData) {
     dashboardState.setState('visualizationStates.animationGraph.currentTime', timeFormat(timestamp));
   }
   
-  // Add link to full visualization
   container.innerHTML += `
     <div class="view-full-link">
       <a href="animation_graph" target="_self">View Full Animation</a>
     </div>
   `;
   
-  // Initial update
   updateTimeDisplay(timestamps[0]);
 }
 
-// Render a frame for the mini animation
 function renderMiniAnimationFrame(timestamp, groupedByTime) {
   const container = document.getElementById('mini-animation-chart');
   if (!container) return;
   
-  // Get data points for this timestamp
   const points = groupedByTime.get(timestamp) || [];
   
-  // Get the selected metric or use combined damage
   const filters = dashboardState.getState('filters');
   const selectedMetric = filters.metric || 'combined_damage';
   
-  // Calculate average damage by location
   const locationDamage = Array.from(
     d3.rollup(
       points, 
@@ -606,18 +533,14 @@ function renderMiniAnimationFrame(timestamp, groupedByTime) {
     ([location, value]) => ({ location, value })
   );
   
-  // Sort by damage score descending
   locationDamage.sort((a, b) => b.value - a.value);
   
-  // Create SVG
   const margin = { top: 10, right: 10, bottom: 20, left: 100 };
   const width = container.clientWidth - margin.left - margin.right;
   const height = 220 - margin.top - margin.bottom;
   
-  // Clear container
   container.innerHTML = '';
   
-  // Create SVG
   const svg = d3.create('svg')
     .attr('width', width + margin.left + margin.right)
     .attr('height', height + margin.top + margin.bottom);
@@ -625,7 +548,6 @@ function renderMiniAnimationFrame(timestamp, groupedByTime) {
   const g = svg.append('g')
     .attr('transform', `translate(${margin.left},${margin.top})`);
   
-  // Scales
   const x = d3.scaleLinear()
     .domain([0, d3.max(locationDamage, d => d.value) || 10])
     .nice()
@@ -636,7 +558,6 @@ function renderMiniAnimationFrame(timestamp, groupedByTime) {
     .range([0, height])
     .padding(0.2);
   
-  // Axes
   g.append('g')
     .attr('class', 'x-axis')
     .attr('transform', `translate(0,${height})`)
@@ -648,7 +569,6 @@ function renderMiniAnimationFrame(timestamp, groupedByTime) {
     .call(d3.axisLeft(y))
     .call(g => g.selectAll('.tick text').attr('fill', '#fff'));
   
-  // Bars
   g.selectAll('.bar')
     .data(locationDamage)
     .join('rect')
@@ -661,22 +581,17 @@ function renderMiniAnimationFrame(timestamp, groupedByTime) {
     .attr('rx', 3)
     .attr('ry', 3);
   
-  // Add to DOM
   container.appendChild(svg.node());
 }
 
-// Update statistics panels
 function updateStatistics(radarData, reportData) {
-  // Apply global filters
   const filters = dashboardState.getState('filters');
   const filteredRadarData = applyGlobalFilters(radarData, {
     locationKey: 'location'
   });
   
-  // ---- Most Affected Areas ----
   const mostAffectedContainer = document.getElementById('most-affected-areas');
   if (mostAffectedContainer) {
-    // Calculate overall damage scores and sort
     const areaDamage = filteredRadarData.map(d => ({
       location: d.location,
       score: d.damage_score || 
@@ -685,7 +600,6 @@ function updateStatistics(radarData, reportData) {
     
     areaDamage.sort((a, b) => b.score - a.score);
     
-    // Get top 5 most affected areas
     const topAreas = areaDamage.slice(0, 5);
     
     let html = '<div class="stat-list">';
@@ -705,10 +619,8 @@ function updateStatistics(radarData, reportData) {
     mostAffectedContainer.innerHTML = html;
   }
   
-  // ---- Damage Trends ----
   const trendsContainer = document.getElementById('damage-trends');
   if (trendsContainer) {
-    // Calculate average damage by type across all filtered data
     const metrics = [
       { key: 'sewer_and_water', displayName: 'Sewer & Water' },
       { key: 'power', displayName: 'Power' },
@@ -722,7 +634,6 @@ function updateStatistics(radarData, reportData) {
       avgDamage[metric.key] = d3.mean(filteredRadarData, d => d[metric.key]);
     });
     
-    // Sort by damage score
     const sortedMetrics = [...metrics].sort((a, b) => 
       avgDamage[b.key] - avgDamage[a.key]
     );
@@ -746,18 +657,15 @@ function updateStatistics(radarData, reportData) {
     trendsContainer.innerHTML = html;
   }
   
-  // ---- Critical Services ----
   const servicesContainer = document.getElementById('critical-services');
   if (servicesContainer) {
-    // Focus on medical and infrastructure services
     const criticalMetrics = [
       { key: 'medical', displayName: 'Medical Facilities' },
       { key: 'power', displayName: 'Power Systems' },
       { key: 'sewer_and_water', displayName: 'Water Systems' }
     ];
     
-    // Calculate percentage of areas with critical damage for each service
-    const criticalThreshold = 7; // Score of 7+ is critical
+    const criticalThreshold = 7;
     
     const criticalStats = criticalMetrics.map(metric => {
       const criticalCount = filteredRadarData.filter(d => d[metric.key] >= criticalThreshold).length;
@@ -797,43 +705,8 @@ function updateStatistics(radarData, reportData) {
   }
 }
 
-// Helper function to load a script
-function loadScript(src) {
-  return new Promise((resolve, reject) => {
-    const script = document.createElement('script');
-    script.src = src;
-    script.onload = resolve;
-    script.onerror = reject;
-    document.head.appendChild(script);
-  });
-}
-
-// Helper function to load a stylesheet
-function loadStylesheet(href) {
-  return new Promise((resolve, reject) => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = href;
-    link.onload = resolve;
-    link.onerror = reject;
-    document.head.appendChild(link);
-  });
-}
-
-// Helper function to get display label for a metric
-function getMetricLabel(metric) {
-  const labels = {
-    "combined_damage": "Combined Damage Score",
-    "sewer_and_water": "Sewer & Water Damage",
-    "power": "Power System Damage",
-    "roads_and_bridges": "Roads & Bridges Damage",
-    "medical": "Medical Facility Damage",
-    "buildings": "Building Damage",
-    "shake_intensity": "Earthquake Intensity"
-  };
-  
-  return labels[metric] || metric;
-}
+// Removed loadScript, loadStylesheet, and getMetricLabel functions
+// These are now imported from standardized js.js
 ```
 
 <style>

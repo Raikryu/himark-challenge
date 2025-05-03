@@ -5,7 +5,6 @@ fetch("radar_chart_data.json")
   function createRadarChart(data) {
     const ctx = document.getElementById("radarChart").getContext("2d");
 
-    // Extract location names and data
     const labels = data.map(item => `Location ${item.location}`);
     const datasets = [
         {

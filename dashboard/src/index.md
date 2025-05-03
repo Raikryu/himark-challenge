@@ -73,40 +73,32 @@ toc: false
 
 <div id="quick-stats" class="quick-stats">
   <h3><i class="fas fa-tachometer-alt"></i> Quick Statistics</h3>
-  <div id="stats-container" class="stats-container">
-    <!-- Will be populated with JavaScript -->
-  </div>
+  <div id="stats-container" class="stats-container"></div>
 </div>
 
 ```js
 import { applyDashboardStyles } from "./components/dashboard-styles.js";
 
-// Initialize the page
 {
   applyDashboardStyles();
 
-  // Fetch the data to calculate quick statistics
   Promise.all([
     FileAttachment("data/cleaned_mc1-reports-data.csv").csv(),
     FileAttachment("radar_chart_data.json").json()
   ]).then(([reportData, radarData]) => {
-  // Calculate key metrics
   const totalReports = reportData.length;
 
-  // Calculate average damage score
   const avgDamage = radarData.reduce((sum, item) =>
     sum + (item.damage_score ||
       ((item.sewer_and_water + item.power + item.roads_and_bridges + item.medical + item.buildings) / 5)), 0
   ) / radarData.length;
 
-  // Find most affected area
   const mostAffectedArea = radarData.reduce((max, item) => {
     const score = item.damage_score ||
       ((item.sewer_and_water + item.power + item.roads_and_bridges + item.medical + item.buildings) / 5);
     return score > max.score ? {name: item.location, score} : max;
   }, {name: '', score: 0});
 
-  // Calculate reporting timespan
   const times = reportData
     .map(d => new Date(d.time.replace(/(\d+)\/(\d+)\/(\d+)/, "$2/$1/$3")))
     .filter(d => !isNaN(d));
@@ -114,7 +106,6 @@ import { applyDashboardStyles } from "./components/dashboard-styles.js";
   const lastReport = new Date(Math.max(...times));
   const daysDiff = Math.floor((lastReport - firstReport) / (1000 * 60 * 60 * 24));
 
-  // Render stats
   const statsContainer = document.getElementById('stats-container');
   statsContainer.innerHTML = `
     <div class="stat-card">
@@ -341,4 +332,4 @@ body {
   }
 }
 
-</stylepng>
+</style>

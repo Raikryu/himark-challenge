@@ -15,7 +15,6 @@ import Inputs from "npm:@observablehq/inputs"
 ```
 
 ```js
-// Dashboard styling
 const colors = {
   primary: "#2a9d8f",
   secondary: "#e76f51",
@@ -35,12 +34,10 @@ const colors = {
 ```
 
 ```js
-// Define metrics
 const metrics = ["missing_data_rate", "report_frequency", "damage_variability", "reliability_score"];
 ```
 
 ```js
-// Define metric labels
 const metricLabels = {
   missing_data_rate: "Missing Data Rate (%)",
   report_frequency: "Report Frequency (min)",
@@ -50,7 +47,6 @@ const metricLabels = {
 ```
 
 ```js
-// Function to format metric values
 function formatMetric(metric, value) {
   switch(metric) {
     case "missing_data_rate":
@@ -68,8 +64,7 @@ function formatMetric(metric, value) {
 ```
 
 ```js
-// Generate sample data for demonstration (fallback)
-function generateData() {
+function createFallbackData() {
   return Array.from({ length: 19 }, (_, i) => ({
     neighborhood: String(i + 1),
     missing_data_rate: Math.random() * 30,
@@ -81,18 +76,15 @@ function generateData() {
 ```
 
 ```js
-// Load neighborhood data using FileAttachment
 const data = await FileAttachment("data/processed_neighborhood_reliability.json").json().catch(() => {
-  console.warn("Error loading data, using generated fallback data");
-  return generateData();
+  console.warn("Error loading data, using fallback placeholder data");
+  return createFallbackData();
 });
 
-// Log the loaded data to confirm it's properly loaded
 console.log("Loaded neighborhood data:", data);
 ```
 
 ```js
-// Calculate summary statistics
 const stats = {};
 for (const metric of metrics) {
   const values = data.map(d => d[metric]).sort(d3.ascending);
@@ -106,12 +98,10 @@ for (const metric of metrics) {
   };
 }
 
-// Log the calculated statistics to confirm
 console.log("Calculated statistics:", stats);
 ```
 
 ```js
-// Create dashboard CSS
 const dashboardStyle = html`<style>
 .dashboard-grid {
   display: grid;
@@ -1806,8 +1796,7 @@ function renderComparisonTable() {
 renderDashboard();
 ```
 
-<!-- stubs for sections that will be generated programmatically -->
 
 ```js
-// The visualizations are now generated programmatically
+// All visualizations render automatically
 ```

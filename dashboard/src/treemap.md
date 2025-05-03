@@ -134,39 +134,42 @@
 ```js 
 import { dashboardColors, applyDashboardStyles, getDamageColor } from "./components/dashboard-styles.js"
 import dashboardState from "./components/dashboard-state.js"
+import { loadCommonLibraries } from "./components/js.js"
 
-{
-  // Apply dashboard styles
+/**
+ * Treemap visualization for damage impact by district
+ * 
+ * This visualization provides a hierarchical view of damage metrics across different districts,
+ * allowing for quick comparison of impact severity.
+ */
+async function initTreemap() {
+  // Apply standardized styles
   applyDashboardStyles();
+  
+  // Load common libraries
+  await loadCommonLibraries();
   
   const width = 800;
   const height = 600;
   
-  // Get SVG element
   const svgElement = document.getElementById("treemapChart");
   const tooltipElement = document.getElementById("treemap-tooltip");
   
-  // Select the SVG with D3
   const svg = d3.select(svgElement);
   const tooltip = d3.select(tooltipElement);
   
-  // Track the current selected metric
   let currentMetric = "combined_damage";
   
-  // Load both treemap data and damage data
   const baseTreemapData = await FileAttachment("treemap.json").json();
   let reportData;
   try {
-    // Try to load the cleaned CSV report data 
     reportData = await FileAttachment("data/cleaned_mc1-reports-data.csv").csv();
   } catch (error) {
     console.error("Error loading report data:", error);
   }
   
-  // Preprocess the report data to get district averages for each metric
   const districtMetrics = {};
   
-  // Process district report data
   async function processDistrictData() {
     if (!reportData) return;
     
@@ -177,16 +180,13 @@ import dashboardState from "./components/dashboard-state.js"
       "Southton", "Oak Willow", "East Parton", "West Parton"
     ];
     
-    // Map numeric location IDs to district names
     const locationMap = {};
     for (let i = 0; i < districtNames.length; i++) {
       locationMap[i + 1] = districtNames[i];
     }
     
-    // Metrics to calculate
     const metrics = ["sewer_and_water", "power", "roads_and_bridges", "medical", "buildings", "shake_intensity"];
     
-    // Initialize district metrics
     districtNames.forEach(district => {
       districtMetrics[district] = {
         combined_damage: 0,
@@ -200,7 +200,6 @@ import dashboardState from "./components/dashboard-state.js"
       };
     });
     
-    // Calculate metrics by district
     reportData.forEach(report => {
       const locationId = parseInt(report.location);
       const districtName = locationMap[locationId];
@@ -209,7 +208,6 @@ import dashboardState from "./components/dashboard-state.js"
       
       districtMetrics[districtName].count++;
       
-      // Sum all damage metrics
       metrics.forEach(metric => {
         const value = parseFloat(report[metric]);
         if (!isNaN(value)) {
@@ -217,7 +215,6 @@ import dashboardState from "./components/dashboard-state.js"
         }
       });
       
-      // Calculate combined damage (excluding shake intensity)
       const damages = [
         parseFloat(report.sewer_and_water),
         parseFloat(report.power),
@@ -232,7 +229,6 @@ import dashboardState from "./components/dashboard-state.js"
       }
     });
     
-    // Calculate averages
     districtNames.forEach(district => {
       const count = districtMetrics[district].count;
       if (count > 0) {
@@ -495,4 +491,7 @@ import dashboardState from "./components/dashboard-state.js"
   // Initial render
   renderTreemap();
 }
+
+// Initialize the treemap visualization
+initTreemap();
 ```

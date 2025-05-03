@@ -1,273 +1,608 @@
-// Visualization content, descriptions, insights, and analysis
-// This module provides consistent content for each visualization
+/**
+ * Standard visualization content components
+ * This provides consistent structure and styling for visualization content.
+ */
+
+import { dashboardColors } from "./dashboard-styles.js";
+import dashboardState from "./dashboard-state.js";
+import { getMetricLabel } from "./js.js";
 
 /**
- * Content for the Heatmap visualization
+ * Creates a container for visualization content
+ * @param {Object} options - Configuration options
+ * @param {string} options.id - ID for the container
+ * @param {number} options.height - Container height in pixels (default: 500)
+ * @param {boolean} options.withPadding - Whether to add padding (default: true)
+ * @param {boolean} options.withBorder - Whether to add border (default: true)
+ * @returns {HTMLElement} The container element
  */
-export const heatmapContent = {
-  title: "St. Himark Geographic Damage Assessment",
-  icon: "map-marked-alt",
-  description: `
-    This interactive heatmap shows the geographic distribution of damage across St. Himark's districts 
-    following the earthquake. The color intensity represents the severity of damage, with darker red indicating 
-    higher damage scores. Select different damage metrics to understand how specific infrastructure types 
-    were affected across the region.
-  `,
-  insights: [
-    "Northwestern districts experienced the most severe overall damage, particularly to power infrastructure and buildings.",
-    "The Central district maintained relatively functional medical facilities despite moderate damage to other systems.",
-    "Southeastern regions show the least damage across most metrics, potentially serving as staging areas for recovery operations.",
-    "Water and sewer system damage closely correlates with building structural damage patterns across all districts."
-  ],
-  instructions: [
-    "Use the dropdown to switch between different damage metrics (overall score, medical, power, etc.).",
-    "Click on a district to see detailed damage information in the panel below.",
-    "Use the 'Compare All Metrics' button to visualize all damage types for a selected district.",
-    "Hover over districts to see tooltips with key metrics.",
-    "Click districts to highlight them and compare with other visualizations."
-  ],
-  metadata: [
-    { label: "Geographic Coverage", value: "19 districts of St. Himark" },
-    { label: "Damage Scale", value: "0-10 (higher = more severe)" },
-    { label: "Data Source", value: "St. Himark Damage Assessment Reports" },
-    { label: "Map Projection", value: "Simplified Coordinate System" }
-  ]
-};
+export function createVisualizationContainer(options) {
+  const {
+    id,
+    height = 500,
+    withPadding = true,
+    withBorder = true
+  } = options;
 
-/**
- * Content for the Radar Chart visualization
- */
-export const radarChartContent = {
-  title: "Multi-Dimensional Damage Assessment",
-  icon: "chart-pie",
-  description: `
-    This radar chart provides a multi-dimensional view of damage across different infrastructure categories. 
-    Each axis represents a different damage metric, allowing for comparison across districts or viewing 
-    average metrics. The chart helps identify which aspects of infrastructure were most severely affected 
-    and compare patterns between different areas.
-  `,
-  insights: [
-    "Power systems consistently show the highest damage scores across most districts, indicating widespread electrical infrastructure failure.",
-    "Medical facilities were relatively more preserved in districts with critical healthcare infrastructure compared to other systems.",
-    "Northwestern districts show a distinctive damage pattern with severe impacts across all categories, while other regions show more varied patterns.",
-    "Building damage strongly correlates with other utility damage, suggesting cascading infrastructure failures."
-  ],
-  instructions: [
-    "Use the District dropdown to select a specific district or view averages across all districts.",
-    "Toggle 'Compare Mode' to select and visualize multiple districts simultaneously.",
-    "When in Compare Mode, use the district dropdown to add districts to the comparison.",
-    "Click on districts in the comparison to remove them.",
-    "Hover over the chart to see exact values for each damage metric.",
-    "Review the District Analysis panel for key statistics and recommendations based on the damage patterns."
-  ],
-  metadata: [
-    { label: "Damage Categories", value: "5 infrastructure types" },
-    { label: "Scale", value: "0-10 severity rating" },
-    { label: "District Coverage", value: "All 19 St. Himark districts" },
-    { label: "Data Collection", value: "Post-earthquake assessment reports" }
-  ]
-};
-
-/**
- * Content for the Animation Graph visualization
- */
-export const animationGraphContent = {
-  title: "Temporal Damage Analysis",
-  icon: "chart-line",
-  description: `
-    This time-series animation shows how damage evolved across different districts over time following the 
-    earthquake. The visualization helps identify critical time periods, damage progression patterns, and the 
-    effectiveness of response efforts. The timeline markers highlight key events during the disaster response.
-  `,
-  insights: [
-    "Damage peaked approximately 36 hours after the initial earthquake, with Northwestern districts experiencing the most severe impacts.",
-    "Power infrastructure damage increased more rapidly than other metrics, suggesting cascading failures in the electrical grid.",
-    "The rate of new damage reports decreased significantly after the 72-hour mark, indicating stabilization of conditions.",
-    "Recovery efforts showed measurable progress first in Central districts before extending to peripheral areas.",
-    "Different infrastructure types showed distinct recovery patterns, with roads and power systems recovering at different rates."
-  ],
-  instructions: [
-    "Use the Play/Pause/Reset buttons to control the animation sequence.",
-    "Adjust the Animation Speed slider to speed up or slow down the playback.",
-    "Change the Time Step dropdown to control how much time advances between frames.",
-    "Select different damage metrics from the dropdown to focus on specific types of infrastructure.",
-    "Use the timeline slider to manually scrub through different time points.",
-    "Click on timeline markers to jump to significant events.",
-    "Examine the Damage Trend chart to see how average damage evolved over time.",
-    "Review the statistics panel for quantitative insights about each time frame."
-  ],
-  metadata: [
-    { label: "Time Period", value: "14 days post-earthquake" },
-    { label: "Temporal Resolution", value: "Hourly data points" },
-    { label: "Metrics Tracked", value: "6 damage categories" },
-    { label: "Data Source", value: "Time-stamped damage reports" }
-  ]
-};
-
-/**
- * Content for the Boxplot visualization
- */
-export const boxplotContent = {
-  title: "Statistical Damage Distribution Analysis",
-  icon: "chart-boxplot",
-  description: `
-    This boxplot visualization provides statistical insights into the distribution of damage across different 
-    locations and metrics. Boxplots show the median, quartiles, and outliers in the damage data, helping to 
-    understand the central tendency and variability of damage across St. Himark.
-  `,
-  insights: [
-    "Building damage shows the widest variability across districts, indicating uneven structural impacts.",
-    "Medical facility damage has the most outliers, suggesting some facilities were disproportionately affected.",
-    "Northwestern districts consistently show higher median damage values with lower variability, indicating widespread severe damage.",
-    "Southeastern districts display lower median damage but higher variability, suggesting isolated severe damage amidst generally milder conditions."
-  ],
-  instructions: [
-    "Use the Location dropdown to filter data for specific districts or view all districts.",
-    "Select different damage metrics from the Metric dropdown to compare distributions.",
-    "Hover over boxplot elements to see exact statistical values (median, quartiles, etc.).",
-    "Compare distributions visually to identify patterns in damage variability across locations.",
-    "Note outliers (points outside the whiskers) as they represent unusually high or low damage reports."
-  ],
-  metadata: [
-    { label: "Statistical Measures", value: "Median, quartiles, min/max, outliers" },
-    { label: "Sample Size", value: "All verified damage reports" },
-    { label: "Whisker Range", value: "1.5 × IQR (interquartile range)" },
-    { label: "Data Processing", value: "Cleaned and validated reports" }
-  ]
-};
-
-/**
- * Content for the Uncertainty Analysis visualization
- */
-export const uncertaintyContent = {
-  title: "Damage Assessment Uncertainty Analysis",
-  icon: "question-circle",
-  description: `
-    This visualization focuses on the reliability and uncertainty in damage assessment data. It helps identify 
-    areas where data may be incomplete or inconsistent, providing context for decision-making about resource 
-    allocation and prioritization of additional assessments.
-  `,
-  insights: [
-    "Northwestern districts show high damage estimates but also high uncertainty, suggesting potential inaccuracies in assessment.",
-    "Central districts have the most consistent reporting with lowest uncertainty, providing reliable damage estimates.",
-    "Remote districts show significant data gaps, with up to 35% missing metrics in some areas.",
-    "Uncertainty in power system damage assessments is higher than other infrastructure types across all districts.",
-    "Temporal patterns show decreasing uncertainty as more comprehensive assessments were completed over time."
-  ],
-  instructions: [
-    "Use the tabs to navigate between different uncertainty visualizations.",
-    "In the scatter plot, identify districts with both high damage and high uncertainty (upper right quadrant).",
-    "Review the missing data rate bars to identify areas requiring additional assessment.",
-    "Examine the correlation heatmap to understand relationships between different uncertainty metrics.",
-    "Use the parallel coordinates plot to trace patterns across multiple uncertainty dimensions simultaneously."
-  ],
-  metadata: [
-    { label: "Uncertainty Metrics", value: "Missing data rate, variance, reliability score" },
-    { label: "Data Quality Sources", value: "Report completeness, consistency, source reliability" },
-    { label: "Correlation Method", value: "Pearson correlation coefficient" },
-    { label: "Reference Period", value: "Complete assessment timeline" }
-  ]
-};
-
-/**
- * Content for the Integrated Dashboard visualization
- */
-export const dashboardContent = {
-  title: "St. Himark Earthquake Integrated Dashboard",
-  icon: "tachometer-alt",
-  description: `
-    This comprehensive dashboard integrates multiple visualizations with shared filters and interactivity to provide 
-    a complete view of the earthquake impact on St. Himark. Use the global filters to focus on specific areas or 
-    damage types and observe coordinated updates across all visualizations.
-  `,
-  insights: [
-    "Northwestern districts experienced critical damage across all infrastructure types, requiring prioritized emergency response.",
-    "Power systems were the most severely affected infrastructure type across all districts, with an average damage score of 7.2/10.",
-    "Damage patterns show clear geographic clustering, with severity decreasing from northwest to southeast.",
-    "Recovery efforts were most effective in districts with lower initial damage, while severely affected areas showed prolonged recovery timelines.",
-    "Medical facilities in the Central district maintained better functionality despite surrounding infrastructure damage, providing critical emergency services."
-  ],
-  instructions: [
-    "Use the global filters at the top to focus on specific districts, damage metrics, or severity thresholds.",
-    "Click on elements in any visualization to highlight corresponding data across all charts.",
-    "Hover over visualization elements to see detailed information in the Highlights box.",
-    "Click 'View Full' links to navigate to detailed visualizations for deeper analysis.",
-    "Examine the Key Statistics panels for summarized insights across all data.",
-    "Review the Analysis and Recommendations section for guidance on response prioritization."
-  ],
-  metadata: [
-    { label: "Integrated Visualizations", value: "6 coordinated views" },
-    { label: "Data Sources", value: "Combined assessment reports and geographic data" },
-    { label: "Update Frequency", value: "Daily during active response" },
-    { label: "Filter Capabilities", value: "Geographic, metric-based, and threshold filtering" }
-  ]
-};
-
-/**
- * Content for the Treemap visualization
- */
-export const treemapContent = {
-  title: "Hierarchical Damage Structure Analysis",
-  icon: "project-diagram",
-  description: `
-    This treemap visualization breaks down damage patterns into hierarchical structures, showing the relative 
-    contribution of different damage categories across districts. The size of each rectangle represents the 
-    proportional severity, helping to identify which aspects of infrastructure contributed most to overall damage.
-  `,
-  insights: [
-    "Power infrastructure damage accounts for approximately 32% of total assessed damage across all districts.",
-    "Northwestern districts show disproportionately high building structural damage compared to other regions.",
-    "Medical facility damage represents the smallest proportion of overall damage, but includes some critical facilities with severe impacts.",
-    "Central districts show a more balanced damage distribution across all categories, while peripheral districts show more specialized damage patterns."
-  ],
-  instructions: [
-    "Click on parent rectangles to zoom in and explore that branch of the hierarchy in more detail.",
-    "Click the top area to zoom back out to the previous level.",
-    "Hover over rectangles to see detailed damage information and proportional statistics.",
-    "Use the color legend to identify different damage categories or district groupings.",
-    "Compare relative sizes to understand proportional contribution to overall damage."
-  ],
-  metadata: [
-    { label: "Hierarchy Levels", value: "3 (Region > District > Damage Type)" },
-    { label: "Size Metric", value: "Proportional damage contribution" },
-    { label: "Color Encoding", value: "Damage type or district category" },
-    { label: "Data Aggregation", value: "Normalized damage scores" }
-  ]
-};
-
-/**
- * Get appropriate content for a visualization based on path or name
- * @param {string} path - The visualization path or name
- * @returns {Object} The content object for the visualization
- */
-export function getVisualizationContent(path) {
-  // Normalize path 
-  const normalizedPath = path.toLowerCase().replace(/\//g, '');
+  const container = document.createElement("div");
+  container.className = "visualization-container";
+  container.id = id;
+  container.style.height = `${height}px`;
   
-  // Match to the appropriate content
-  if (normalizedPath.includes('heatmap')) {
-    return heatmapContent;
-  } else if (normalizedPath.includes('radar') || normalizedPath.includes('radar-chart')) {
-    return radarChartContent;
-  } else if (normalizedPath.includes('animation') || normalizedPath.includes('animated')) {
-    return animationGraphContent;
-  } else if (normalizedPath.includes('boxplot')) {
-    return boxplotContent;
-  } else if (normalizedPath.includes('uncertainty') || normalizedPath.includes('task2')) {
-    return uncertaintyContent;
-  } else if (normalizedPath.includes('dashboard')) {
-    return dashboardContent;
-  } else if (normalizedPath.includes('treemap')) {
-    return treemapContent;
+  if (!withPadding) {
+    container.style.padding = "0";
   }
   
-  // Default to basic content if no match
+  if (!withBorder) {
+    container.style.border = "none";
+  }
+
+  const style = document.createElement("style");
+  style.textContent = `
+    .visualization-container {
+      width: 100%;
+      position: relative;
+      background: var(--bg-card);
+      border: ${withBorder ? '1px solid var(--bg-card-border)' : 'none'};
+      border-radius: 8px;
+      padding: ${withPadding ? '1.5rem' : '0'};
+      margin-bottom: 2rem;
+      overflow: hidden;
+    }
+  `;
+  document.head.appendChild(style);
+
+  return container;
+}
+
+/**
+ * Creates a legend for visualizations
+ * @param {Object} options - Configuration options
+ * @param {string} options.id - ID for the legend
+ * @param {Array} options.items - Array of legend items
+ * @param {string} options.position - Legend position (default: "bottom")
+ * @returns {HTMLElement} The legend element
+ */
+export function createLegend(options) {
+  const {
+    id,
+    items = [],
+    position = "bottom", // "bottom", "top", "right", "left"
+  } = options;
+
+  const legend = document.createElement("div");
+  legend.className = `visualization-legend legend-${position}`;
+  legend.id = id;
+
+  // Create legend items
+  items.forEach(item => {
+    const legendItem = document.createElement("div");
+    legendItem.className = "legend-item";
+    
+    const colorBox = document.createElement("div");
+    colorBox.className = "legend-color";
+    colorBox.style.backgroundColor = item.color;
+    
+    const label = document.createElement("span");
+    label.className = "legend-label";
+    label.textContent = item.label;
+    
+    legendItem.appendChild(colorBox);
+    legendItem.appendChild(label);
+    legend.appendChild(legendItem);
+  });
+
+  const style = document.createElement("style");
+  style.textContent = `
+    .visualization-legend {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.875rem;
+      color: var(--text-light);
+    }
+    
+    .legend-bottom, .legend-top {
+      flex-direction: row;
+      flex-wrap: wrap;
+      justify-content: center;
+      margin: ${position === "top" ? "0 0 1rem 0" : "1rem 0 0 0"};
+    }
+    
+    .legend-left, .legend-right {
+      flex-direction: column;
+      position: absolute;
+      top: 1rem;
+      ${position === "left" ? "left: 1rem" : "right: 1rem"};
+      background: rgba(38, 70, 83, 0.7);
+      padding: 0.75rem;
+      border-radius: 6px;
+      z-index: 10;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      white-space: nowrap;
+    }
+    
+    .legend-color {
+      width: 12px;
+      height: 12px;
+      border-radius: 2px;
+      flex-shrink: 0;
+    }
+    
+    .legend-label {
+      font-size: 0.875rem;
+    }
+    
+    @media (max-width: 768px) {
+      .legend-left, .legend-right {
+        position: static;
+        margin-top: 1rem;
+        flex-direction: row;
+        flex-wrap: wrap;
+      }
+    }
+  `;
+  document.head.appendChild(style);
+
+  return legend;
+}
+
+/**
+ * Creates a tooltip for use in visualizations
+ * @returns {HTMLElement} The tooltip element
+ */
+export function createTooltip() {
+  const tooltip = document.createElement("div");
+  tooltip.className = "visualization-tooltip";
+  tooltip.style.display = "none";
+  document.body.appendChild(tooltip);
+
+  const style = document.createElement("style");
+  style.textContent = `
+    .visualization-tooltip {
+      position: absolute;
+      background: rgba(38, 70, 83, 0.9);
+      color: white;
+      padding: 0.75rem;
+      border-radius: 4px;
+      font-size: 0.875rem;
+      pointer-events: none;
+      z-index: 1000;
+      max-width: 300px;
+      box-shadow: 0 3px 6px rgba(0, 0, 0, 0.16);
+      border: 1px solid ${dashboardColors.primary};
+      transform: translate(-50%, -100%);
+      margin-top: -8px;
+    }
+    
+    .visualization-tooltip:after {
+      content: '';
+      position: absolute;
+      bottom: -8px;
+      left: 50%;
+      margin-left: -8px;
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+      border-top: 8px solid rgba(38, 70, 83, 0.9);
+    }
+  `;
+  document.head.appendChild(style);
+
   return {
-    title: "Visualization",
-    icon: "chart-line",
-    description: "This visualization provides insights into the earthquake damage data for St. Himark.",
-    insights: [],
-    instructions: [],
-    metadata: []
+    element: tooltip,
+    
+    /**
+     * Shows the tooltip
+     * @param {Object} options - Options for showing tooltip
+     * @param {number} options.x - X coordinate
+     * @param {number} options.y - Y coordinate
+     * @param {string|HTMLElement} options.content - Content to show
+     */
+    show: function({ x, y, content }) {
+      if (typeof content === "string") {
+        this.element.innerHTML = content;
+      } else if (content instanceof HTMLElement) {
+        this.element.innerHTML = "";
+        this.element.appendChild(content);
+      }
+      
+      this.element.style.display = "block";
+      this.element.style.left = `${x}px`;
+      this.element.style.top = `${y}px`;
+    },
+    
+    /**
+     * Hides the tooltip
+     */
+    hide: function() {
+      this.element.style.display = "none";
+    }
   };
+}
+
+/**
+ * Creates a standard no-data message
+ * @param {string} message - Message to display
+ * @returns {HTMLElement} The message element
+ */
+export function createNoDataMessage(message = "No data available for the selected filters") {
+  const container = document.createElement("div");
+  container.className = "no-data-message";
+  
+  const icon = document.createElement("i");
+  icon.className = "fas fa-info-circle";
+  
+  const text = document.createElement("p");
+  text.textContent = message;
+  
+  container.appendChild(icon);
+  container.appendChild(text);
+  
+  const style = document.createElement("style");
+  style.textContent = `
+    .no-data-message {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100%;
+      padding: 2rem;
+      text-align: center;
+      color: var(--text-muted);
+    }
+    
+    .no-data-message i {
+      font-size: 2rem;
+      margin-bottom: 1rem;
+      color: var(--primary-color);
+    }
+    
+    .no-data-message p {
+      font-size: 1rem;
+      max-width: 300px;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  return container;
+}
+
+/**
+ * Creates a standard insights card for analysis text
+ * @param {Object} options - Configuration options
+ * @param {string} options.title - Insights title
+ * @param {string|HTMLElement} options.content - Content to display
+ * @param {string} options.icon - Optional Font Awesome icon
+ * @returns {HTMLElement} The insights card
+ */
+export function createInsightsCard(options) {
+  const {
+    title,
+    content,
+    icon = "lightbulb"
+  } = options;
+  
+  const card = document.createElement("div");
+  card.className = "insights-card dashboard-card";
+  
+  const titleElement = document.createElement("div");
+  titleElement.className = "dashboard-title";
+  titleElement.innerHTML = `<i class="fas fa-${icon}"></i> ${title}`;
+  
+  const contentElement = document.createElement("div");
+  contentElement.className = "insights-content";
+  
+  if (typeof content === "string") {
+    contentElement.innerHTML = content;
+  } else if (content instanceof HTMLElement) {
+    contentElement.appendChild(content);
+  }
+  
+  card.appendChild(titleElement);
+  card.appendChild(contentElement);
+  
+  const style = document.createElement("style");
+  style.textContent = `
+    .insights-card {
+      margin-top: 2rem;
+    }
+    
+    .insights-content {
+      color: var(--text-light);
+      font-size: 0.95rem;
+      line-height: 1.6;
+    }
+    
+    .insights-content p {
+      margin: 0.7rem 0;
+    }
+    
+    .insights-content strong {
+      color: var(--primary-color);
+    }
+  `;
+  document.head.appendChild(style);
+  
+  return card;
+}
+
+/**
+ * Creates a metric card to display a key value with label
+ * @param {Object} options - Configuration options
+ * @param {string} options.label - Metric label
+ * @param {string|number} options.value - Metric value
+ * @param {string} options.color - Optional color for value
+ * @param {string} options.icon - Optional Font Awesome icon
+ * @returns {HTMLElement} The metric card
+ */
+export function createMetricCard(options) {
+  const {
+    label,
+    value,
+    color = dashboardColors.secondary,
+    icon
+  } = options;
+  
+  const card = document.createElement("div");
+  card.className = "metric-card";
+  
+  let iconHtml = '';
+  if (icon) {
+    iconHtml = `<i class="fas fa-${icon}"></i>`;
+  }
+  
+  card.innerHTML = `
+    <div class="metric-value" style="color: ${color}">
+      ${iconHtml}
+      <span>${value}</span>
+    </div>
+    <div class="metric-label">${label}</div>
+  `;
+  
+  const style = document.createElement("style");
+  style.textContent = `
+    .metric-card {
+      background: var(--bg-card);
+      border: 1px solid var(--bg-card-border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: center;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.2s ease-in-out;
+    }
+    
+    .metric-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    }
+    
+    .metric-value {
+      font-size: 2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    
+    .metric-label {
+      font-size: 1rem;
+      color: var(--text-muted);
+    }
+  `;
+  document.head.appendChild(style);
+  
+  return card;
+}
+
+/**
+ * Creates a metric row for visualization details
+ * @param {Object} options - Configuration options
+ * @param {string} options.label - Metric label
+ * @param {string|number} options.value - Metric value 
+ * @param {number|null} options.max - Maximum value for bar (if showing a bar)
+ * @param {boolean} options.showBar - Whether to show a bar visualization
+ * @param {string} options.barColor - Color for the bar
+ * @returns {HTMLElement} The metric row element
+ */
+export function createMetricRow(options) {
+  const {
+    label,
+    value,
+    max = 10,
+    showBar = false,
+    barColor = null
+  } = options;
+  
+  const row = document.createElement("div");
+  row.className = "metric-row";
+  
+  const labelElement = document.createElement("div");
+  labelElement.className = "metric-row-label";
+  labelElement.textContent = label;
+  
+  const valueElement = document.createElement("div");
+  valueElement.className = "metric-row-value";
+  
+  if (showBar && max > 0) {
+    // Calculate percentage
+    const percentage = Math.min(100, (value / max) * 100);
+    const color = barColor || dashboardColors.primary;
+    
+    valueElement.innerHTML = `
+      <div class="metric-bar-container">
+        <div class="metric-bar" style="width: ${percentage}%; background-color: ${color}">
+          <span>${value}</span>
+        </div>
+      </div>
+    `;
+  } else {
+    valueElement.textContent = value;
+  }
+  
+  row.appendChild(labelElement);
+  row.appendChild(valueElement);
+  
+  const style = document.createElement("style");
+  style.textContent = `
+    .metric-row {
+      display: flex;
+      align-items: center;
+      margin-bottom: 0.75rem;
+      padding-bottom: 0.75rem;
+      border-bottom: 1px solid var(--bg-card-border);
+    }
+    
+    .metric-row:last-child {
+      border-bottom: none;
+      margin-bottom: 0;
+      padding-bottom: 0;
+    }
+    
+    .metric-row-label {
+      flex: 1;
+      font-size: 0.95rem;
+      color: var(--text-light);
+    }
+    
+    .metric-row-value {
+      flex: 2;
+      font-size: 1rem;
+      font-weight: 500;
+      color: var(--text-light);
+    }
+    
+    .metric-bar-container {
+      height: 20px;
+      background: rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      overflow: hidden;
+    }
+    
+    .metric-bar {
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      padding-right: 8px;
+      color: white;
+      font-size: 0.8rem;
+      font-weight: bold;
+      border-radius: 10px;
+    }
+  `;
+  document.head.appendChild(style);
+  
+  return row;
+}
+
+/**
+ * Creates a table to display data with consistent styling
+ * @param {Object} options - Configuration options
+ * @param {Array} options.headers - Array of column headers
+ * @param {Array} options.rows - Array of row data arrays
+ * @param {boolean} options.striped - Whether to use striped styling
+ * @param {Array} options.columnWidths - Optional array of column widths
+ * @returns {HTMLElement} The table element
+ */
+export function createDataTable(options) {
+  const {
+    headers = [],
+    rows = [],
+    striped = true,
+    columnWidths = []
+  } = options;
+  
+  const table = document.createElement("table");
+  table.className = `data-table ${striped ? 'striped' : ''}`;
+  
+  // Create header
+  if (headers.length > 0) {
+    const thead = document.createElement("thead");
+    const headerRow = document.createElement("tr");
+    
+    headers.forEach((header, index) => {
+      const th = document.createElement("th");
+      th.textContent = header;
+      
+      if (columnWidths[index]) {
+        th.style.width = columnWidths[index];
+      }
+      
+      headerRow.appendChild(th);
+    });
+    
+    thead.appendChild(headerRow);
+    table.appendChild(thead);
+  }
+  
+  // Create body
+  const tbody = document.createElement("tbody");
+  
+  rows.forEach(row => {
+    const tr = document.createElement("tr");
+    
+    row.forEach(cell => {
+      const td = document.createElement("td");
+      
+      if (cell !== null && typeof cell === 'object' && cell.html) {
+        td.innerHTML = cell.html;
+      } else if (cell !== null && typeof cell === 'object' && cell.element) {
+        td.appendChild(cell.element);
+      } else {
+        td.textContent = cell;
+      }
+      
+      if (cell !== null && typeof cell === 'object' && cell.className) {
+        td.className = cell.className;
+      }
+      
+      tr.appendChild(td);
+    });
+    
+    tbody.appendChild(tr);
+  });
+  
+  table.appendChild(tbody);
+  
+  const style = document.createElement("style");
+  style.textContent = `
+    .data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 1rem;
+      color: var(--text-light);
+    }
+    
+    .data-table th, .data-table td {
+      padding: 0.75rem;
+      text-align: left;
+      border-bottom: 1px solid var(--bg-card-border);
+    }
+    
+    .data-table th {
+      color: var(--primary-color);
+      font-weight: 600;
+      background: rgba(42, 157, 143, 0.05);
+    }
+    
+    .data-table.striped tbody tr:nth-child(odd) {
+      background: rgba(255, 255, 255, 0.03);
+    }
+    
+    .data-table tbody tr:hover {
+      background: rgba(255, 255, 255, 0.05);
+    }
+  `;
+  document.head.appendChild(style);
+  
+  return table;
 }

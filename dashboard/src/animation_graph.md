@@ -10,12 +10,10 @@ toc: false
 This interactive visualization tracks damage metrics across St. Himark neighborhoods following the earthquake. Use the controls to animate the visualization and identify critical patterns.
 
 ```js
-// Import required libraries
 import * as d3 from "d3";
 ```
 
 ```js
-// Define dashboard colors and helper functions
 const dashboardColors = {
   primary: '#2a9d8f',
   secondary: '#e76f51',
@@ -24,7 +22,6 @@ const dashboardColors = {
   muted: '#a8a8a8',
 };
 
-// Define neighborhood name mapping from ID to actual name
 const neighborhoodMap = {
   1: "Palace Hills",
   2: "Northwest",
@@ -47,15 +44,13 @@ const neighborhoodMap = {
   19: "West Parton"
 };
 
-// Function to get color based on damage level (0-10)
 function getDamageColor(value) {
-  // Define color ranges for different damage levels
   const colors = [
-    {min: 0, max: 2, color: '#2a9d8f'},  // Low - teal
-    {min: 2, max: 4, color: '#8ab17d'},  // Low-mid - green/yellow
-    {min: 4, max: 6, color: '#e9c46a'},  // Mid - yellow
-    {min: 6, max: 8, color: '#f4a261'},  // Mid-high - orange
-    {min: 8, max: 10, color: '#e76f51'}, // High - red/orange
+    {min: 0, max: 2, color: '#2a9d8f'},
+    {min: 2, max: 4, color: '#8ab17d'},
+    {min: 4, max: 6, color: '#e9c46a'},
+    {min: 6, max: 8, color: '#f4a261'},
+    {min: 8, max: 10, color: '#e76f51'},
   ];
 
   for (const range of colors) {
@@ -64,11 +59,9 @@ function getDamageColor(value) {
     }
   }
 
-  // Default color for values out of range
   return colors[colors.length - 1].color;
 }
 
-// Function to get label for a metric
 function getMetricLabel(metric) {
   const labels = {
     "combined_damage": "Combined Damage Score",
@@ -85,7 +78,6 @@ function getMetricLabel(metric) {
 ```
 
 ```js
-// Define CSS for the dashboard
 html`<style>
 :root {
   --primary-color: #2a9d8f;
@@ -212,8 +204,8 @@ html`<style>
   display: grid;
   grid-template-columns: 2fr 1fr;
   gap: 2rem;
-  margin-bottom: 150px; /* Increased bottom margin to prevent overlap */
-  height: 800px; /* Increased height for taller charts */
+  margin-bottom: 150px;
+  height: 800px;
 }
 .chart-container {
   background: var(--bg-card);
@@ -223,7 +215,7 @@ html`<style>
   box-shadow: 0 4px 6px rgba(0,0,0,0.1);
   width: 100%;
   height: 100%;
-  min-height: 750px; /* Increased minimum height to match chart-box */
+  min-height: 750px;
   box-sizing: border-box;
   position: relative;
 }
@@ -370,7 +362,7 @@ html`<style>
   border: 1px solid var(--bg-card-border);
   border-radius: 12px;
   height: 100%;
-  min-height: 750px; /* Increased minimum height */
+  min-height: 750px;
   width: 100%;
   background-color: rgba(42, 157, 143, 0.05);
   overflow: hidden;
@@ -401,7 +393,6 @@ html`<style>
 ## Animation Controls
 
 ```js
-// Create control panel
 const controlPanel = html`
 <div class="control-panel">
   <div class="control-group">
@@ -445,7 +436,6 @@ const controlPanel = html`
 </div>
 `;
 
-// Create timeline slider container with improved structure
 const timelineContainer = html`
 <div class="timeline-container">
   <div id="timeline-slider-container">
@@ -456,7 +446,6 @@ const timelineContainer = html`
 </div>
 `;
 
-// Create visualization containers
 const visualizationContainer = html`
 <h2>Damage Evolution Visualization</h2>
 <div class="visualization-container">
@@ -481,7 +470,7 @@ const visualizationContainer = html`
   </div>
 </div>
 
-<div style="margin-top: 100px;"><!-- Added spacer div -->
+<div style="margin-top: 100px;">
   <h2 style="margin-top: 50px;">Key Insights and Patterns</h2>
   <div class="dashboard-card insights-card">
     <div class="dashboard-title">
@@ -494,16 +483,13 @@ const visualizationContainer = html`
 </div>
 `;
 
-// Display control panel, timeline, and visualization containers
 display(controlPanel);
 display(timelineContainer);
 display(visualizationContainer);
 ```
 
 ```js
-// Generate sample data for the visualization
 function generateSampleData() {
-  // Use the neighborhood names from the mapping defined globally
   const locations = [
     neighborhoodMap[1], neighborhoodMap[2], neighborhoodMap[3],
     neighborhoodMap[4], neighborhoodMap[5], neighborhoodMap[6],
@@ -512,25 +498,19 @@ function generateSampleData() {
 
   const data = [];
 
-  // Create data points across 5 days with hourly intervals
-  const startDate = new Date(2020, 3, 6, 8, 0); // April 6th, 2020, 8:00 AM
+  const startDate = new Date(2020, 3, 6, 8, 0);
 
   for (let day = 0; day < 5; day++) {
     for (let hour = 0; hour < 24; hour++) {
-      // Skip some hours to make data more realistic
       if (Math.random() > 0.7) continue;
 
       const currentTime = new Date(startDate);
       currentTime.setDate(startDate.getDate() + day);
       currentTime.setHours(startDate.getHours() + hour);
 
-      // Add data for each location
       for (const location of locations) {
-        // Skip some locations randomly
         if (Math.random() > 0.8) continue;
 
-        // Calculate damage values with realistic patterns
-        // Higher initial damage that decreases over time
         const dayFactor = Math.max(0, 1 - (day * 0.15));
         const hourFactor = Math.max(0, 1 - (hour * 0.01));
         const randomFactor = 0.7 + (Math.random() * 0.6);
@@ -553,23 +533,18 @@ function generateSampleData() {
   return data;
 }
 
-// Generate the data
 const sampleData = generateSampleData();
 
-// Group data by time (hour)
 const groupedByTime = d3.group(sampleData, d => d3.timeHour(d.time));
 
-// Get timestamps in ascending order
 const timestamps = Array.from(groupedByTime.keys()).sort((a, b) => a - b);
 
-// Animation state
 let currentIndex = 0;
 let animationSpeed = 1000;
 let animationInterval;
 let step = 12;
 let selectedMetric = "combined_damage";
 
-// Get DOM elements
 const playButton = document.getElementById("play-button");
 const pauseButton = document.getElementById("pause-button");
 const resetButton = document.getElementById("reset-button");
@@ -584,20 +559,16 @@ const trendChart = document.getElementById("trend-chart");
 const currentStats = document.getElementById("current-stats");
 const insightsContent = document.getElementById("insights-content");
 
-// Update timeline slider range
 timelineSlider.max = timestamps.length - 1;
 timelineSlider.value = 0;
 
-// Date formatting function
 const timeFormat = d3.timeFormat("%b %d, %Y %H:%M");
 
-// Initialize with first frame
 if (timestamps.length > 0) {
   renderFrame(timestamps[0]);
   currentTimeDisplay.textContent = `Current Time: ${timeFormat(timestamps[0])}`;
 }
 
-// Add event listeners
 playButton.addEventListener("click", startAnimation);
 pauseButton.addEventListener("click", pauseAnimation);
 resetButton.addEventListener("click", resetAnimation);
@@ -616,7 +587,6 @@ speedControl.addEventListener("input", function() {
   animationSpeed = parseInt(this.value);
   speedDisplay.textContent = (animationSpeed / 1000).toFixed(1) + " seconds";
 
-  // Update animation if it's running
   if (animationInterval) {
     pauseAnimation();
     startAnimation();
@@ -630,9 +600,8 @@ timelineSlider.addEventListener("input", function() {
   updateTrendChart();
 });
 
-// Animation control functions
 function startAnimation() {
-  pauseAnimation(); // Clear any existing interval
+  pauseAnimation();
 
   animationInterval = setInterval(advanceFrame, animationSpeed);
 
@@ -660,57 +629,46 @@ function resetAnimation() {
 }
 
 function advanceFrame() {
-  // Calculate next time based on step size
   const currentTime = timestamps[currentIndex];
   const targetTime = new Date(currentTime.getTime() + (step * 60 * 60 * 1000));
 
-  // Find the next closest timestamp
   const nextIndex = timestamps.findIndex(t => t >= targetTime);
 
   if (nextIndex !== -1 && nextIndex < timestamps.length) {
     currentIndex = nextIndex;
   } else {
-    // End of timeline, loop back to beginning
     currentIndex = 0;
     pauseAnimation();
-    generateInsights(); // Generate insights when animation completes
+    generateInsights();
   }
 
-  // Update UI
   timelineSlider.value = currentIndex;
   renderFrame(timestamps[currentIndex]);
   currentTimeDisplay.textContent = `Current Time: ${timeFormat(timestamps[currentIndex])}`;
   updateTrendChart();
 }
 
-// Visualization rendering functions
 function renderFrame(timestamp) {
-  // Clear previous content
   barContainer.innerHTML = "";
 
-  // Get data points for this timestamp
   const points = groupedByTime.get(timestamp) || [];
 
-  // Calculate average damage by location
   const locationDamage = Array.from(
     d3.rollup(
       points,
       v => {
         if (selectedMetric === "combined_damage") {
-          // Calculate average of all damage metrics
           return d3.mean(v, d =>
             (d.sewer_and_water + d.power + d.roads_and_bridges +
              d.medical + d.buildings + d.shake_intensity) / 6
           );
         } else {
-          // Use selected single metric
           return d3.mean(v, d => d[selectedMetric] || 0);
         }
       },
       d => d.location
     ),
     ([location, value]) => {
-      // Convert numerical location IDs to actual neighborhood names
       let neighborhoodName = location;
       if (neighborhoodMap && neighborhoodMap[location]) {
         neighborhoodName = neighborhoodMap[location];
@@ -719,18 +677,14 @@ function renderFrame(timestamp) {
     }
   );
 
-  // Sort by damage score descending
   locationDamage.sort((a, b) => b.value - a.value);
 
-  // Create visualization
   const margin = { top: 20, right: 30, bottom: 40, left: 120 };
   const width = barContainer.clientWidth - margin.left - margin.right;
 
-  // Set a taller height for the chart visualization
   const containerHeight = barContainer.clientHeight || 750;
   const height = containerHeight - margin.top - margin.bottom;
 
-  // Create SVG
   const svg = d3.create("svg")
     .attr("width", "100%")
     .attr("height", "100%")
@@ -743,7 +697,6 @@ function renderFrame(timestamp) {
   const g = svg.append("g")
     .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Scales
   const x = d3.scaleLinear()
     .domain([0, d3.max(locationDamage, d => d.value) || 10])
     .nice()
@@ -754,7 +707,6 @@ function renderFrame(timestamp) {
     .range([0, height])
     .padding(0.2);
 
-  // Axes
   g.append("g")
     .attr("class", "x-axis")
     .attr("transform", `translate(0,${height})`)
@@ -769,7 +721,6 @@ function renderFrame(timestamp) {
     .call(g => g.select(".domain").remove())
     .call(g => g.selectAll(".tick text").attr("fill", "#fff"));
 
-  // X-axis label
   g.append("text")
     .attr("class", "x-label")
     .attr("text-anchor", "middle")
@@ -778,7 +729,6 @@ function renderFrame(timestamp) {
     .attr("fill", "#fff")
     .text(getMetricLabel(selectedMetric));
 
-  // Bars
   g.selectAll(".bar")
     .data(locationDamage)
     .join("rect")
@@ -791,7 +741,6 @@ function renderFrame(timestamp) {
     .attr("rx", 4)
     .attr("ry", 4);
 
-  // Bar value labels
   g.selectAll(".bar-label")
     .data(locationDamage)
     .join("text")
@@ -803,7 +752,6 @@ function renderFrame(timestamp) {
     .attr("font-size", 10)
     .text(d => d.value.toFixed(1));
 
-  // Title
   svg.append("text")
     .attr("class", "chart-title")
     .attr("x", margin.left + width / 2)
@@ -814,22 +762,18 @@ function renderFrame(timestamp) {
     .attr("font-weight", "bold")
     .text(`${getMetricLabel(selectedMetric)} at ${timeFormat(timestamp)}`);
 
-  // Add to container
   barContainer.appendChild(svg.node());
 
-  // Update current statistics
   updateCurrentStats(locationDamage, timestamp);
 }
 
 function updateTrendChart() {
-  // Clear previous content
   trendChart.innerHTML = "";
 
   const width = trendChart.clientWidth;
   const height = 150;
   const margin = { top: 20, right: 30, bottom: 30, left: 40 };
 
-  // Calculate average damage for each timestamp up to current index
   const trendData = [];
 
   for (let i = 0; i <= Math.min(currentIndex + 10, timestamps.length - 1); i++) {
@@ -852,14 +796,12 @@ function updateTrendChart() {
     });
   }
 
-  // Create SVG
   const svg = d3.create("svg")
     .attr("width", "100%")
     .attr("height", height)
     .attr("viewBox", `0 0 ${width} ${height}`)
     .attr("preserveAspectRatio", "xMidYMid meet");
 
-  // Scales
   const x = d3.scaleTime()
     .domain(d3.extent(trendData, d => d.time))
     .range([margin.left, width - margin.right]);
@@ -869,7 +811,6 @@ function updateTrendChart() {
     .nice()
     .range([height - margin.bottom, margin.top]);
 
-  // Axes
   svg.append("g")
     .attr("class", "trend-x-axis")
     .attr("transform", `translate(0,${height - margin.bottom})`)
@@ -882,7 +823,6 @@ function updateTrendChart() {
     .call(d3.axisLeft(y).ticks(5))
     .call(g => g.selectAll(".tick text").attr("fill", "#fff"));
 
-  // Line
   const line = d3.line()
     .defined(d => !isNaN(d.value))
     .x(d => x(d.time))
@@ -897,7 +837,6 @@ function updateTrendChart() {
     .attr("stroke-width", 2)
     .attr("d", line);
 
-  // Current point
   if (trendData.length > 0) {
     const currentData = trendData[Math.min(currentIndex, trendData.length - 1)];
     svg.append("circle")
@@ -910,7 +849,6 @@ function updateTrendChart() {
       .attr("fill", "white");
   }
 
-  // Add to container
   trendChart.appendChild(svg.node());
 }
 
@@ -920,10 +858,8 @@ function updateCurrentStats(locationDamage, timestamp) {
     return;
   }
 
-  // Calculate overall average
   const avgDamage = d3.mean(locationDamage, d => d.value);
 
-  // Generate HTML
   let html = `
     <div class="stats-grid">
       <div class="stat-card">
@@ -948,7 +884,6 @@ function updateCurrentStats(locationDamage, timestamp) {
       <div class="severity-bars">
   `;
 
-  // Define severity levels
   const severityLevels = [
     { min: 0, max: 2, label: "Minimal", color: getDamageColor(1) },
     { min: 2, max: 4, label: "Minor", color: getDamageColor(3) },
@@ -957,7 +892,6 @@ function updateCurrentStats(locationDamage, timestamp) {
     { min: 8, max: 10, label: "Critical", color: getDamageColor(9) }
   ];
 
-  // Count locations in each severity level
   severityLevels.forEach(level => {
     const count = locationDamage.filter(d => d.value >= level.min && d.value < level.max).length;
     const percentage = (count / locationDamage.length) * 100;
@@ -982,7 +916,6 @@ function updateCurrentStats(locationDamage, timestamp) {
 }
 
 function generateInsights() {
-  // Calculate key metrics for insights
   let peakDamageTime = null;
   let maxAvgDamage = 0;
   let peakDamageLocation = null;
@@ -990,10 +923,8 @@ function generateInsights() {
   for (const timestamp of timestamps) {
     const points = groupedByTime.get(timestamp) || [];
 
-    // Skip if no data
     if (points.length === 0) continue;
 
-    // Calculate average combined damage
     const avgDamage = d3.mean(points, d =>
       (d.sewer_and_water + d.power + d.roads_and_bridges +
        d.medical + d.buildings + d.shake_intensity) / 6
@@ -1003,7 +934,6 @@ function generateInsights() {
       maxAvgDamage = avgDamage;
       peakDamageTime = timestamp;
 
-      // Find most damaged location at peak
       const locationDamages = Array.from(
         d3.rollup(
           points,
@@ -1017,23 +947,19 @@ function generateInsights() {
 
       locationDamages.sort((a, b) => b[1] - a[1]);
       if (locationDamages.length > 0) {
-        // Get the location ID and convert to neighborhood name
         const locationId = locationDamages[0][0];
         peakDamageLocation = neighborhoodMap[locationId] || locationId;
       }
     }
   }
 
-  // Most consistently damaged location
   const locationDamageOverTime = new Map();
 
   for (const timestamp of timestamps) {
     const points = groupedByTime.get(timestamp) || [];
 
-    // Skip if no data
     if (points.length === 0) continue;
 
-    // Calculate average damage by location
     const locationDamages = d3.rollup(
       points,
       v => d3.mean(v, d =>
@@ -1043,7 +969,6 @@ function generateInsights() {
       d => d.location
     );
 
-    // Update running average for each location
     locationDamages.forEach((damage, location) => {
       if (!locationDamageOverTime.has(location)) {
         locationDamageOverTime.set(location, []);
@@ -1052,13 +977,11 @@ function generateInsights() {
     });
   }
 
-  // Calculate average damage for each location
   const locationAvgDamage = new Map();
   locationDamageOverTime.forEach((damages, location) => {
     locationAvgDamage.set(location, d3.mean(damages));
   });
 
-  // Find location with highest average damage
   const sortedLocations = Array.from(locationAvgDamage.entries())
     .sort((a, b) => b[1] - a[1]);
   
@@ -1068,7 +991,6 @@ function generateInsights() {
   
   const mostDamagedLocation = [mostDamagedLocationName, mostDamagedLocationValue];
 
-  // Most variable location (highest standard deviation)
   const locationVariability = new Map();
   locationDamageOverTime.forEach((damages, location) => {
     const mean = d3.mean(damages);
@@ -1077,7 +999,6 @@ function generateInsights() {
     locationVariability.set(location, stdDev);
   });
 
-  // Find location with highest variability
   const sortedVariableLocations = Array.from(locationVariability.entries())
     .sort((a, b) => b[1] - a[1]);
   
@@ -1087,7 +1008,6 @@ function generateInsights() {
   
   const mostVariableLocation = [mostVariableLocationName, mostVariableLocationValue];
 
-  // Generate insight HTML
   let insightsHtml = `
     <div class="insights-grid">
       <div class="insight-card">
@@ -1124,13 +1044,10 @@ function generateInsights() {
   insightsContent.innerHTML = insightsHtml;
 }
 
-// Ensure Font Awesome is loaded for icons
 html`<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">`;
 
-// Load Inter font
 html`<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">`;
 
-// Initialize the visualization
 if (timestamps.length > 0) {
   renderFrame(timestamps[0]);
   updateTrendChart();

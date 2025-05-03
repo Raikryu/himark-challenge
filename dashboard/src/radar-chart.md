@@ -15,7 +15,6 @@ This radar chart visualization enables the comparison of different damage metric
     <label for="district-select">Select District:</label>
     <select id="district-select" class="dashboard-select">
       <option value="all">All Districts</option>
-      <!-- District options will be added dynamically -->
     </select>
   </div>
   
@@ -30,7 +29,6 @@ This radar chart visualization enables the comparison of different damage metric
   
   <div id="comparison-controls" style="display: none;">
     <div class="chips-container" id="district-chips">
-      <!-- District chips will be added dynamically -->
     </div>
     <button id="clear-selection" class="dashboard-button">
       <i class="fas fa-times-circle"></i> Clear Selection
@@ -53,16 +51,23 @@ This radar chart visualization enables the comparison of different damage metric
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
-
 ```js
-import { dashboardColors, getDamageColor, applyDashboardStyles } from "./components/dashboard-styles.js"
+import { dashboardColors, getDamageColor, applyDashboardStyles } from "./components/dashboard-styles.js";
+import { loadCommonLibraries, getMetricLabel, formatDate } from "./components/js.js";
+import dashboardState from "./components/dashboard-state.js";
 
-{
-  // Apply common dashboard styles
+// Load standardized libraries 
+document.addEventListener("DOMContentLoaded", async () => {
+  await loadCommonLibraries();
+});
+
+/**
+ * Initialize the radar chart visualization
+ */
+async function initRadarChart() {
+  // Apply standardized styles
   applyDashboardStyles();
   
-  // DOM elements
   const districtSelect = document.getElementById("district-select");
   const compareToggle = document.getElementById("compare-toggle");
   const compareState = document.getElementById("compare-state");
@@ -71,17 +76,12 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
   const clearSelectionBtn = document.getElementById("clear-selection");
   const districtAnalysis = document.getElementById("district-analysis");
   
-  // Chart reference
   let radarChart = null;
   
-  // Track selected districts for comparison
   let selectedDistricts = [];
   let compareMode = false;
-  
-  // Load data
   const data = await FileAttachment("radar_chart_data.json").json();
   
-  // Define metrics with display names
   const metrics = {
     sewer_and_water: { 
       displayName: "Sewer & Water",
@@ -105,13 +105,10 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     }
   };
   
-  // Get metric keys (we'll exclude damage_score as it's calculated)
   const metricKeys = Object.keys(metrics);
   
-  // Populate district select dropdown
   populateDistrictDropdown();
   
-  // Initialize chart with default values
   createChart("all");
   
   // Setup event listeners
@@ -119,12 +116,25 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
   compareToggle.addEventListener("change", handleCompareToggle);
   clearSelectionBtn.addEventListener("click", clearSelectedDistricts);
   
-  // Function to populate district dropdown
+  // Subscribe to dashboard state changes
+  if (typeof dashboardState !== 'undefined') {
+    dashboardState.subscribe('filters', (filters) => {
+      if (filters.location) {
+        // Look for the district in the dropdown
+        const districtOption = Array.from(districtSelect.options)
+          .find(option => option.textContent === filters.location);
+        
+        if (districtOption) {
+          districtSelect.value = districtOption.value;
+          handleDistrictChange();
+        }
+      }
+    });
+  }
+  
   function populateDistrictDropdown() {
-    // Get unique district names
     const districtNames = data.map(d => d.location);
     
-    // Add options to select
     districtNames.forEach(district => {
       const option = document.createElement("option");
       option.value = district;
@@ -133,70 +143,54 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     });
   }
   
-  // Handle district selection change
   function handleDistrictChange() {
     const selectedValue = districtSelect.value;
     
     if (compareMode) {
-      // In compare mode, add selected district to comparison
       if (selectedValue !== "all" && !selectedDistricts.includes(selectedValue)) {
         addDistrictToComparison(selectedValue);
       }
     } else {
-      // In single mode, just update the chart
       createChart(selectedValue);
       updateDistrictAnalysis(selectedValue);
     }
   }
   
-  // Handle compare toggle change
   function handleCompareToggle() {
     compareMode = compareToggle.checked;
     compareState.textContent = compareMode ? "Multi District" : "Single District";
     
     if (compareMode) {
-      // Switch to comparison mode
       comparisonControls.style.display = "block";
-      // Add current selection if it's a specific district
       if (districtSelect.value !== "all") {
         addDistrictToComparison(districtSelect.value);
       } else {
-        // If "all" is selected, start with empty comparison
         createComparisonChart();
       }
     } else {
-      // Switch back to single mode
       comparisonControls.style.display = "none";
       createChart(districtSelect.value);
       updateDistrictAnalysis(districtSelect.value);
     }
   }
   
-  // Add a district to the comparison
   function addDistrictToComparison(districtName) {
-    // Check if we already have this district
     if (selectedDistricts.includes(districtName)) {
       return;
     }
     
-    // Add to our tracking array
     selectedDistricts.push(districtName);
     
-    // Create a chip for this district
     const chip = document.createElement("div");
     chip.className = "district-chip";
     
-    // Get district data
     const districtData = data.find(d => d.location === districtName);
     
-    // Calculate damage score if not present
     const damageScore = districtData.damage_score || 
       calculateDamageScore(districtData);
     
-    // Get color based on damage score
     const chipColor = getDamageColor(damageScore);
     
-    // Create chip content
     chip.innerHTML = `
       <span class="chip-name" style="background-color: ${chipColor}">
         ${districtName}
@@ -206,25 +200,19 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
       </button>
     `;
     
-    // Add chip to container
     districtChips.appendChild(chip);
     
-    // Add click handler for remove button
     chip.querySelector(".chip-remove").addEventListener("click", function(e) {
       const district = e.currentTarget.dataset.district;
       removeDistrictFromComparison(district);
     });
     
-    // Update the chart
     createComparisonChart();
   }
   
-  // Remove a district from comparison
   function removeDistrictFromComparison(districtName) {
-    // Remove from array
     selectedDistricts = selectedDistricts.filter(d => d !== districtName);
     
-    // Remove chip
     const chips = districtChips.querySelectorAll(".district-chip");
     chips.forEach(chip => {
       const removeBtn = chip.querySelector(".chip-remove");
@@ -233,34 +221,27 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
       }
     });
     
-    // Update chart
     createComparisonChart();
   }
   
-  // Clear all selected districts
   function clearSelectedDistricts() {
     selectedDistricts = [];
     districtChips.innerHTML = "";
     createComparisonChart();
   }
   
-  // Create chart for a single district or all districts
   function createChart(districtValue) {
     const ctx = document.getElementById("radarChart").getContext("2d");
     
-    // Destroy existing chart if it exists
     if (radarChart) {
       radarChart.destroy();
     }
     
-    // Prepare labels (metric names)
     const labels = metricKeys.map(key => metrics[key].displayName);
     
-    // Prepare datasets
     let datasets = [];
     
     if (districtValue === "all") {
-      // Show average for all districts
       const avgData = calculateAverageData();
       
       datasets.push({
@@ -275,7 +256,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
         pointRadius: 4
       });
     } else {
-      // Show data for specific district
       const districtData = data.find(d => d.location === districtValue);
       
       if (districtData) {
@@ -293,7 +273,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
       }
     }
     
-    // Create the chart
     radarChart = new Chart(ctx, {
       type: "radar",
       data: {
@@ -377,24 +356,17 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     });
   }
   
-  // Create comparison chart for multiple districts
   function createComparisonChart() {
     const ctx = document.getElementById("radarChart").getContext("2d");
     
-    // Destroy existing chart if it exists
     if (radarChart) {
       radarChart.destroy();
     }
     
-    // Prepare labels (metric names)
     const labels = metricKeys.map(key => metrics[key].displayName);
     
-    // Prepare datasets
     let datasets = [];
-    
-    // If no districts selected, show empty chart with message
     if (selectedDistricts.length === 0) {
-      // Show the chart container but with a message
       document.getElementById("radarChart").style.display = "none";
       districtAnalysis.innerHTML = `
         <div class="empty-state">
@@ -405,16 +377,12 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
       return;
     }
     
-    // Show the chart
     document.getElementById("radarChart").style.display = "block";
-    
-    // Create a dataset for each selected district
     selectedDistricts.forEach((districtName, index) => {
       const districtData = data.find(d => d.location === districtName);
       
       if (districtData) {
-        // Get a unique color for each district
-        const hue = (index * 137) % 360; // Golden angle approximation for good distribution
+        const hue = (index * 137) % 360;
         const color = `hsl(${hue}, 70%, 60%)`;
         
         datasets.push({
@@ -431,7 +399,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
       }
     });
     
-    // Create the chart
     radarChart = new Chart(ctx, {
       type: "radar",
       data: {
@@ -512,27 +479,22 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
       }
     });
     
-    // Update comparative analysis
     updateComparativeAnalysis();
   }
   
-  // Calculate average data across all districts
   function calculateAverageData() {
     const avgData = {};
     
-    // Initialize average for each metric
     metricKeys.forEach(key => {
       avgData[key] = 0;
     });
     
-    // Sum values
     data.forEach(district => {
       metricKeys.forEach(key => {
         avgData[key] += district[key] || 0;
       });
     });
     
-    // Calculate average
     metricKeys.forEach(key => {
       avgData[key] = avgData[key] / data.length;
     });
@@ -540,7 +502,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     return avgData;
   }
   
-  // Calculate damage score for a district if not provided
   function calculateDamageScore(district) {
     let sum = 0;
     let count = 0;
@@ -555,15 +516,12 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     return count > 0 ? sum / count : 0;
   }
   
-  // Update district analysis panel
   function updateDistrictAnalysis(districtName) {
-    // If "all" is selected, show overall analysis
     if (districtName === "all") {
       showOverallAnalysis();
       return;
     }
     
-    // Find district data
     const districtData = data.find(d => d.location === districtName);
     
     if (!districtData) {
@@ -571,10 +529,8 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
       return;
     }
     
-    // Calculate damage score if not provided
     const damageScore = districtData.damage_score || calculateDamageScore(districtData);
     
-    // Find the highest and lowest damage categories
     const metricValues = metricKeys.map(key => ({
       key: key,
       value: districtData[key] || 0,
@@ -583,8 +539,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     
     const highestDamage = [...metricValues].sort((a, b) => b.value - a.value)[0];
     const lowestDamage = [...metricValues].sort((a, b) => a.value - b.value)[0];
-    
-    // Generate analysis
     districtAnalysis.innerHTML = `
       <h3>${districtName} District Analysis</h3>
       
@@ -629,12 +583,9 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     `;
   }
   
-  // Show overall analysis when "all" is selected
   function showOverallAnalysis() {
-    // Calculate average data
     const avgData = calculateAverageData();
     
-    // Find districts with highest and lowest overall damage
     const districtsByDamage = [...data].sort((a, b) => {
       const scoreA = a.damage_score || calculateDamageScore(a);
       const scoreB = b.damage_score || calculateDamageScore(b);
@@ -644,7 +595,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     const mostDamaged = districtsByDamage[0];
     const leastDamaged = districtsByDamage[districtsByDamage.length - 1];
     
-    // Find most damaged category across all districts
     const avgMetricValues = metricKeys.map(key => ({
       key: key,
       value: avgData[key],
@@ -652,8 +602,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     }));
     
     const highestAvgDamage = [...avgMetricValues].sort((a, b) => b.value - a.value)[0];
-    
-    // Calculate overall average damage
     const overallAvg = metricKeys.reduce((sum, key) => sum + avgData[key], 0) / metricKeys.length;
     
     districtAnalysis.innerHTML = `
@@ -704,13 +652,11 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     `;
   }
   
-  // Update comparative analysis when multiple districts are selected
   function updateComparativeAnalysis() {
     if (selectedDistricts.length === 0) {
       return;
     }
     
-    // Collect data for the selected districts
     const selectedData = selectedDistricts.map(district => {
       const districtData = data.find(d => d.location === district);
       return {
@@ -720,14 +666,10 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
       };
     });
     
-    // Sort by damage score
     selectedData.sort((a, b) => b.score - a.score);
     
-    // Calculate differences and similarities
     const differences = findKeyDifferences(selectedData);
     const similarities = findKeySimilarities(selectedData);
-    
-    // Generate comparative analysis
     districtAnalysis.innerHTML = `
       <h3>Comparative Analysis</h3>
       
@@ -778,19 +720,15 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     `;
   }
   
-  // Generate recommendations based on district data
   function getRecommendation(districtData) {
-    // Find the most critical areas
     const metricValues = metricKeys.map(key => ({
       key: key,
       value: districtData[key] || 0,
       name: metrics[key].displayName
     }));
     
-    // Sort by severity
     metricValues.sort((a, b) => b.value - a.value);
     
-    // Generate recommendations based on top issues
     const topIssues = metricValues.slice(0, 2);
     
     if (topIssues[0].value > 7) {
@@ -802,7 +740,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     }
   }
   
-  // Get severity description based on damage score
   function getDamageSeverityDescription(score) {
     if (score <= 2) {
       return "Minimal damage requiring routine maintenance";
@@ -817,7 +754,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     }
   }
   
-  // Calculate variability across districts
   function calculateVariability() {
     const scores = data.map(d => d.damage_score || calculateDamageScore(d));
     const min = Math.min(...scores);
@@ -826,7 +762,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     return variability;
   }
   
-  // Find key differences between selected districts
   function findKeyDifferences(selectedData) {
     if (selectedData.length < 2) {
       return [{
@@ -837,14 +772,13 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     
     const differences = [];
     
-    // For each metric, find the largest difference
     metricKeys.forEach(key => {
       const values = selectedData.map(d => d.data[key]);
       const min = Math.min(...values);
       const max = Math.max(...values);
       const diff = max - min;
       
-      if (diff > 2) { // Only consider significant differences
+      if (diff > 2) {
         const highestDistrict = selectedData.find(d => d.data[key] === max);
         const lowestDistrict = selectedData.find(d => d.data[key] === min);
         
@@ -856,13 +790,11 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
       }
     });
     
-    // Sort by largest difference
     differences.sort((a, b) => b.value - a.value);
     
-    return differences.slice(0, 3); // Return top 3 differences
+    return differences.slice(0, 3);
   }
   
-  // Find key similarities between selected districts
   function findKeySimilarities(selectedData) {
     if (selectedData.length < 2) {
       return [{
@@ -873,14 +805,13 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     
     const similarities = [];
     
-    // For each metric, find the smallest difference
     metricKeys.forEach(key => {
       const values = selectedData.map(d => d.data[key]);
       const min = Math.min(...values);
       const max = Math.max(...values);
       const diff = max - min;
       
-      if (diff < 1.5) { // Consider small differences as similarities
+      if (diff < 1.5) {
         similarities.push({
           metric: metrics[key].displayName,
           value: diff,
@@ -889,7 +820,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
       }
     });
     
-    // Sort by smallest difference
     similarities.sort((a, b) => a.value - b.value);
     
     return similarities.length > 0 ? similarities.slice(0, 3) : [{
@@ -898,28 +828,24 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     }];
   }
   
-  // Generate recommendations for comparison
   function generateComparisonRecommendation(selectedData) {
     if (selectedData.length <= 1) {
       return "Select multiple districts to generate comparative recommendations.";
     }
     
-    // Find the district with highest damage
-    const mostDamaged = selectedData[0]; // Already sorted
+    const mostDamaged = selectedData[0];
     
-    // Find the most common critical issue across districts
     const criticalIssues = {};
     
     metricKeys.forEach(key => {
       criticalIssues[key] = 0;
       selectedData.forEach(district => {
-        if (district.data[key] > 7) { // Critical threshold
+        if (district.data[key] > 7) {
           criticalIssues[key]++;
         }
       });
     });
     
-    // Find the most common critical issue
     const mostCommonIssue = Object.keys(criticalIssues).reduce((a, b) => 
       criticalIssues[a] > criticalIssues[b] ? a : b
     );
@@ -930,7 +856,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
       
       return `Prioritize ${metrics[mostCommonIssue].displayName} repairs across ${affectedCount} of ${totalCount} selected districts, with immediate focus on ${mostDamaged.name} which has the highest overall damage score of ${mostDamaged.score.toFixed(1)}/10. Coordinated response teams should be deployed to address this common critical issue.`;
     } else {
-      // If no critical issues, recommend based on highest damage district
       return `Focus resources on ${mostDamaged.name} district which has the highest overall damage score of ${mostDamaged.score.toFixed(1)}/10. Other selected districts show less severe damage but should be monitored. Regular assessment of infrastructure across all districts is recommended.`;
     }
   }
@@ -954,7 +879,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
   color: var(--text-light);
 }
 
-/* Toggle Switch */
 .toggle-container {
   display: flex;
   align-items: center;
@@ -1008,7 +932,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
   color: var(--text-muted);
 }
 
-/* District Chips */
 .chips-container {
   display: flex;
   flex-wrap: wrap;
@@ -1051,7 +974,6 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
   background: rgba(255, 255, 255, 0.1);
 }
 
-/* Analysis Styles */
 .analysis-section {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1194,3 +1116,8 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
   }
 }
 </style>
+
+<script>
+// Initialize the radar chart
+initRadarChart();
+</script>

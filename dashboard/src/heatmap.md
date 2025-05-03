@@ -35,7 +35,6 @@ This visualization shows the damage across different districts of St. Himark. Ar
 <div class="dashboard-card">
   <div id="map" style="width: 100%; height: 600px;"></div>
   <div class="dashboard-legend" id="map-legend">
-    <!-- Will be populated with JavaScript -->
   </div>
 </div>
 
@@ -53,67 +52,73 @@ This visualization shows the damage across different districts of St. Himark. Ar
   <div id="district-info">Select a district on the map to see detailed information.</div>
 </div>
 
-<!-- Add Chart.js script -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
 
 ```js
 import { dashboardColors, getDamageColor, applyDashboardStyles } from "./components/dashboard-styles.js"
+import dashboardState from "./components/dashboard-state.js";
+import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
 
 {
-  // Apply common dashboard styles
   applyDashboardStyles();
+  
+  async function loadExternalLibraries() {
+    const head = document.head;
 
-  // Add required libraries to the page
-  const head = document.head;
+    // Add Leaflet CSS
+    const leafletCSS = document.createElement('link');
+    leafletCSS.rel = 'stylesheet';
+    leafletCSS.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+    head.appendChild(leafletCSS);
 
-  // Add Leaflet CSS
-  const leafletCSS = document.createElement('link');
-  leafletCSS.rel = 'stylesheet';
-  leafletCSS.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
-  head.appendChild(leafletCSS);
+    // Add Leaflet JS
+    const leafletJS = document.createElement('script');
+    leafletJS.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+    head.appendChild(leafletJS);
+    
+    // Also load common libraries
+    await loadCommonLibraries();
+  }
 
-  // Add Leaflet JS
-  const leafletJS = document.createElement('script');
-  leafletJS.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
-  head.appendChild(leafletJS);
-
-  // We now load Chart.js via a script tag in the HTML section, so no need to load it dynamically here
-  // const chartJS = document.createElement('script');
-  // chartJS.src = 'https://cdn.jsdelivr.net/npm/chart.js';
-  // head.appendChild(chartJS);
-
-  // Initialize visualization after a short delay to ensure libraries are loaded
-  setTimeout(() => {
-    // Verify Chart.js is loaded
+  // Initialize the heatmap and visualization components
+  async function initHeatmap() {
+    await loadExternalLibraries();
+    
     if (typeof Chart === 'undefined') {
-      console.error('Chart.js is not loaded properly. Please refresh the page.');
+      console.error('Chart.js not loaded properly.');
       const errorMsg = document.createElement('div');
       errorMsg.className = 'error-message';
-      errorMsg.textContent = 'Failed to load Chart.js library. Please refresh the page.';
+      errorMsg.textContent = 'Failed to load visualization libraries.';
       document.getElementById('metrics-chart').appendChild(errorMsg);
       return;
     }
-  // References to DOM elements
-  const map = L.map('map', {
-    crs: L.CRS.Simple,
-    minZoom: -2,
-    center: [0, 0],
-    zoom: 0
-  });
+    
+    try {
+  let map;
+  
+  // Ensure Leaflet is loaded
+  if (typeof L !== 'undefined') {
+    map = L.map('map', {
+      crs: L.CRS.Simple,
+      minZoom: -2,
+      center: [0, 0],
+      zoom: 0
+    });
+  } else {
+    console.error("Leaflet not loaded properly");
+    return;
+  }
 
   const metricSelect = document.getElementById('metric-select');
   const showAllMetricsBtn = document.getElementById('show-all-metrics');
   const metricsComparisonDiv = document.getElementById('metrics-comparison');
   const districtInfoDiv = document.getElementById('district-info');
   const mapLegendDiv = document.getElementById('map-legend');
-
-  // Set map bounds
   const width = 1000, height = 800;
   const bounds = [[0, 0], [height, width]];
   map.setMaxBounds(bounds);
   map.fitBounds(bounds);
 
-  // Define metrics with display names and colors
   const metrics = {
     damage_score: {
       displayName: "Overall Damage Score",
@@ -541,8 +546,33 @@ import { dashboardColors, getDamageColor, applyDashboardStyles } from "./compone
     }
     return color;
   }
-  }, 1000); // Increased timeout to 1000ms to ensure all libraries are loaded
-} // End of block
+  
+  // Subscribe to dashboard state changes
+  if (typeof dashboardState !== 'undefined') {
+    dashboardState.subscribe('filters', (filters) => {
+      if (filters.metric) {
+        const metricSelect = document.getElementById('metric-select');
+        if (metricSelect && metricSelect.querySelector(`option[value="${filters.metric}"]`)) {
+          metricSelect.value = filters.metric;
+          updateMap(filters.metric);
+          createMapLegend(filters.metric);
+        }
+      }
+    });
+  }
+    
+  // Error handling
+  } catch (error) {
+    console.error("Error initializing heatmap:", error);
+    const errorMsg = document.createElement('div');
+    errorMsg.className = 'error-message';
+    errorMsg.textContent = 'An error occurred while initializing the visualization.';
+    document.getElementById('map').appendChild(errorMsg);
+  }
+}
+    
+setTimeout(initHeatmap, 1000);
+}
 ```
 
 <style>

@@ -9,7 +9,6 @@ toc: false
 This interactive visualization shows the distribution of damage metrics for each neighborhood across different days. Use the controls to explore different metrics and locations to identify patterns and outliers.
 
 ```js
-// Import required libraries
 import * as d3 from "d3";
 ```
 
@@ -49,7 +48,6 @@ import * as d3 from "d3";
 </div>
 
 ```js
-// Define CSS for the dashboard
 const dashboardStyles = html`<style>
 :root {
   --primary-color: #2a9d8f;
@@ -202,16 +200,12 @@ const dashboardStyles = html`<style>
 }
 </style>`;
 
-// Add styles to the document
 display(dashboardStyles);
 
-// Load Font Awesome for icons
 html`<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css">`;
 
-// Load Inter font
 html`<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap" rel="stylesheet">`;
 
-// Define dashboard colors object for plots
 const dashboardColors = {
   primary: '#2a9d8f',
   secondary: '#e76f51',
@@ -228,7 +222,6 @@ const dashboardColors = {
   }
 };
 
-// Define neighborhood name mapping from ID to actual name
 const neighborhoodMap = {
   1: "Palace Hills",
   2: "Northwest",
@@ -251,15 +244,13 @@ const neighborhoodMap = {
   19: "West Parton"
 };
 
-// Function to get color based on damage level (0-10)
 function getDamageColor(value) {
-  // Define color ranges for different damage levels
   const colors = [
-    {min: 0, max: 2, color: '#2a9d8f'},  // Low - teal
-    {min: 2, max: 4, color: '#8ab17d'},  // Low-mid - green/yellow
-    {min: 4, max: 6, color: '#e9c46a'},  // Mid - yellow
-    {min: 6, max: 8, color: '#f4a261'},  // Mid-high - orange
-    {min: 8, max: 10, color: '#e76f51'}, // High - red/orange
+    {min: 0, max: 2, color: '#2a9d8f'},
+    {min: 2, max: 4, color: '#8ab17d'},
+    {min: 4, max: 6, color: '#e9c46a'},
+    {min: 6, max: 8, color: '#f4a261'},
+    {min: 8, max: 10, color: '#e76f51'},
   ];
 
   for (const range of colors) {
@@ -268,11 +259,9 @@ function getDamageColor(value) {
     }
   }
 
-  // Default color for values out of range
   return colors[colors.length - 1].color;
 }
 
-// Function to get label for a metric
 function getMetricLabel(metric) {
   const labels = {
     "combined_damage": "Combined Damage Score",
@@ -287,11 +276,9 @@ function getMetricLabel(metric) {
   return labels[metric] || metric;
 }
 
-// Load and process data
 FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
   const raw = d3.csvParse(text.replace(/\r\n/g, "\n").trim(), d3.autoType);
 
-  // Parse dates and ensure proper data types
   const parseDate = d3.timeParse("%d/%m/%Y %H:%M");
   raw.forEach(d => {
     d.numericDate = parseDate(d.time);
@@ -299,12 +286,10 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
     d.date = d.numericDate ? d.numericDate.toISOString().split("T")[0] : null;
   });
 
-  // Filter data to earthquake period (April 6-10, 2020)
   const rangeStart = new Date("2020-04-06");
   const rangeEnd = new Date("2020-04-10");
   const validData = raw.filter(d => d.numericDate >= rangeStart && d.numericDate <= rangeEnd);
 
-  // Get unique locations and populate the select dropdown
   const locations = [...new Set(validData.map(d => d.location))].sort((a, b) => +a - +b);
   const locationSelect = document.getElementById("location-select");
   locationSelect.innerHTML = "";
@@ -312,26 +297,21 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
   locations.forEach(loc => {
     const option = document.createElement("option");
     option.value = loc;
-    // Use the neighborhood mapping for the display text
     option.textContent = neighborhoodMap[loc] || `Neighborhood ${loc}`;
     locationSelect.appendChild(option);
   });
 
-  // Get reference to metric select
   const metricSelect = document.getElementById("metric-select");
 
-  // Function to update insights based on selected options
   function updateInsights(location, metric, data) {
     const insightsContent = document.getElementById("insights-content");
 
-    // Calculate some statistics for insights
     const metricValues = data.map(d => d[metric]);
     const avg = d3.mean(metricValues);
     const max = d3.max(metricValues);
     const min = d3.min(metricValues);
     const median = d3.median(metricValues);
 
-    // Find date with highest average
     const byDate = d3.group(data, d => d.date);
     let maxDateAvg = 0;
     let maxDate = "";
@@ -344,16 +324,13 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       }
     }
 
-    // Format the date for display
     const formatDate = d => {
       const dateObj = new Date(d);
       return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
-    // Create insights HTML in a grid format (similar to animation_graph.md)
     const neighborhoodName = neighborhoodMap[location] || `Neighborhood ${location}`;
     
-    // Calculate variance for variability insight
     const variance = d3.variance(metricValues) || 0;
     const stdDev = Math.sqrt(variance);
     
@@ -394,24 +371,19 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
 
     insightsContent.innerHTML = html;
   }
-
-  // Function to draw the box plot
   function drawBoxPlot() {
     const selectedLocation = locationSelect.value;
     const selectedMetric = metricSelect.value;
 
-    // Filter data based on selections
     const filtered = validData.filter(d =>
       d.location === selectedLocation && !isNaN(d[selectedMetric])
     );
 
-    // Group data by date for statistical summaries
     const byDate = Array.from(d3.group(filtered, d => d.date), ([key, value]) => ({
       date: key,
       values: value.map(d => d[selectedMetric])
     }));
 
-    // Calculate statistics for each date
     byDate.forEach(d => {
       d.min = d3.min(d.values);
       d.q1 = d3.quantile(d.values.sort(d3.ascending), 0.25);
@@ -419,55 +391,45 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       d.q3 = d3.quantile(d.values.sort(d3.ascending), 0.75);
       d.max = d3.max(d.values);
       d.mean = d3.mean(d.values);
-      // Calculate color based on mean damage level
       d.color = getDamageColor(d.mean);
     });
 
-    // Sort by date
     byDate.sort((a, b) => a.date.localeCompare(b.date));
 
-    // Format date for display
     const formatDate = d => {
       const dateObj = new Date(d);
       return dateObj.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     };
 
-    // Create SVG for box plot
     const container = document.getElementById("chart-container");
     const width = container.clientWidth;
-    const height = 750; // Set fixed height to match animation graph
+    const height = 750;
     container.style.height = `${height}px`;
     const margin = { top: 40, right: 30, bottom: 60, left: 80 };
     const chartWidth = width - margin.left - margin.right;
     const chartHeight = height - margin.top - margin.bottom;
 
-    // Clear previous content
     container.innerHTML = "";
 
-    // Create SVG
     const svg = d3.create("svg")
       .attr("width", "100%")
       .attr("height", "100%")
       .attr("viewBox", `0 0 ${width} ${height}`)
       .attr("preserveAspectRatio", "xMidYMid meet");
 
-    // Create chart group
     const g = svg.append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-    // X scale - categorical for dates
     const x = d3.scaleBand()
       .domain(byDate.map(d => d.date))
       .range([0, chartWidth])
       .padding(0.4);
 
-    // Y scale - numerical for damage metrics
     const y = d3.scaleLinear()
-      .domain([0, d3.max(byDate, d => d.max) * 1.1]) // Add 10% padding at top
+      .domain([0, d3.max(byDate, d => d.max) * 1.1])
       .nice()
       .range([chartHeight, 0]);
 
-    // Add X axis with formatted dates
     g.append("g")
       .attr("class", "x-axis")
       .attr("transform", `translate(0,${chartHeight})`)
@@ -478,7 +440,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
         .attr("fill", dashboardColors.text.light)
         .attr("text-anchor", "middle");
 
-    // Style X axis
     g.select(".x-axis")
       .selectAll("line")
       .attr("stroke", dashboardColors.background.cardBorder);
@@ -487,14 +448,12 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .selectAll("path")
       .attr("stroke", dashboardColors.background.cardBorder);
 
-    // Add Y axis
     g.append("g")
       .attr("class", "y-axis")
       .call(d3.axisLeft(y))
       .selectAll("text")
         .attr("fill", dashboardColors.text.light);
 
-    // Style Y axis
     g.select(".y-axis")
       .selectAll("line")
       .attr("stroke", dashboardColors.background.cardBorder);
@@ -503,7 +462,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .selectAll("path")
       .attr("stroke", dashboardColors.background.cardBorder);
 
-    // Add horizontal grid lines
     g.append("g")
       .attr("class", "grid")
       .call(d3.axisLeft(y)
@@ -515,10 +473,8 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("stroke-opacity", 0.3)
       .attr("stroke-dasharray", "3,3");
 
-    // Remove grid axis line
     g.select(".grid path").remove();
 
-    // Add vertical grid lines
     g.append("g")
       .attr("class", "grid vertical-grid")
       .attr("transform", `translate(0,${chartHeight})`)
@@ -531,20 +487,16 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("stroke-opacity", 0.3)
       .attr("stroke-dasharray", "3,3");
 
-    // Remove vertical grid axis line
     g.select(".vertical-grid path").remove();
 
-    // Create groups for each box
     const boxGroups = g.selectAll(".box")
       .data(byDate)
       .join("g")
       .attr("class", "box")
       .attr("transform", d => `translate(${x(d.date) + x.bandwidth()/2},0)`);
 
-    // Box width - half the band width
     const boxWidth = x.bandwidth() * 0.8;
 
-    // Add boxes (rectangles for IQR)
     boxGroups.append("rect")
       .attr("x", -boxWidth / 2)
       .attr("y", d => y(d.q3))
@@ -553,11 +505,10 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("fill", d => d.color)
       .attr("stroke", dashboardColors.secondary)
       .attr("stroke-width", 1)
-      .attr("rx", 3) // Rounded corners
+      .attr("rx", 3)
       .attr("ry", 3)
       .attr("opacity", 0.8);
 
-    // Add median lines
     boxGroups.append("line")
       .attr("x1", -boxWidth / 2)
       .attr("x2", boxWidth / 2)
@@ -566,7 +517,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("stroke", "white")
       .attr("stroke-width", 2);
 
-    // Add min lines (lower whiskers)
     boxGroups.append("line")
       .attr("class", "whisker")
       .attr("x1", 0)
@@ -576,7 +526,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("stroke", dashboardColors.secondary)
       .attr("stroke-width", 1);
 
-    // Add max lines (upper whiskers)
     boxGroups.append("line")
       .attr("class", "whisker")
       .attr("x1", 0)
@@ -586,7 +535,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("stroke", dashboardColors.secondary)
       .attr("stroke-width", 1);
 
-    // Add min whisker ticks
     boxGroups.append("line")
       .attr("class", "whisker-tick")
       .attr("x1", -boxWidth / 4)
@@ -596,7 +544,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("stroke", dashboardColors.secondary)
       .attr("stroke-width", 1);
 
-    // Add max whisker ticks
     boxGroups.append("line")
       .attr("class", "whisker-tick")
       .attr("x1", -boxWidth / 4)
@@ -606,7 +553,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("stroke", dashboardColors.secondary)
       .attr("stroke-width", 1);
 
-    // Add mean points
     boxGroups.append("circle")
       .attr("cx", 0)
       .attr("cy", d => y(d.mean))
@@ -615,7 +561,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("stroke", dashboardColors.secondary)
       .attr("stroke-width", 1);
 
-    // Add X axis label
     svg.append("text")
       .attr("class", "x-label")
       .attr("text-anchor", "middle")
@@ -624,7 +569,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("fill", dashboardColors.text.light)
       .text("Date");
 
-    // Add Y axis label
     svg.append("text")
       .attr("class", "y-label")
       .attr("text-anchor", "middle")
@@ -632,7 +576,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("fill", dashboardColors.text.light)
       .text(getMetricLabel(selectedMetric));
 
-    // Add chart title
     const neighborhoodTitle = neighborhoodMap[selectedLocation] || `Neighborhood ${selectedLocation}`;
     svg.append("text")
       .attr("class", "chart-title")
@@ -644,12 +587,10 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("fill", dashboardColors.text.light)
       .text(`${getMetricLabel(selectedMetric)} in ${neighborhoodTitle}`);
 
-    // Add legend
     const legendGroup = svg.append("g")
       .attr("class", "legend")
       .attr("transform", `translate(${width - margin.right - 150}, ${margin.top})`);
 
-    // Legend title
     legendGroup.append("text")
       .attr("x", 0)
       .attr("y", 0)
@@ -657,7 +598,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("fill", dashboardColors.text.light)
       .text("Box Plot Elements:");
 
-    // Box element
     legendGroup.append("rect")
       .attr("x", 0)
       .attr("y", 10)
@@ -674,7 +614,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("fill", dashboardColors.text.light)
       .text("IQR (25-75%)");
 
-    // Median line
     legendGroup.append("line")
       .attr("x1", 0)
       .attr("x2", 15)
@@ -690,7 +629,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("fill", dashboardColors.text.light)
       .text("Median");
 
-    // Mean point
     legendGroup.append("circle")
       .attr("cx", 7.5)
       .attr("cy", 60)
@@ -706,7 +644,6 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("fill", dashboardColors.text.light)
       .text("Mean");
 
-    // Whisker
     legendGroup.append("line")
       .attr("x1", 7.5)
       .attr("x2", 7.5)
@@ -730,18 +667,14 @@ FileAttachment("data/cleaned_mc1-reports-data.csv").text().then(text => {
       .attr("fill", dashboardColors.text.light)
       .text("Min/Max Range");
 
-    // Add the SVG to the container
     container.appendChild(svg.node());
 
-    // Update insights with this data
     updateInsights(selectedLocation, selectedMetric, filtered);
   }
 
-  // Add event listeners to the selectors
   locationSelect.addEventListener("change", drawBoxPlot);
   metricSelect.addEventListener("change", drawBoxPlot);
 
-  // Initial drawing
   setTimeout(() => {
     if (locationSelect.options.length > 0) {
       locationSelect.selectedIndex = 0;
