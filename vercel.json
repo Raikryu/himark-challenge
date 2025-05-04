@@ -1,0 +1,15 @@
+{
+    "rewrites": [
+      {
+        "source": "/animation_graph",
+        "destination": "/dist/animation_graph.html"
+      },
+
+      {
+        "source": "/",
+        "destination": "/dist/index.html"
+      }
+    ],
+    "outputDirectory": "/dist"
+  }
+  

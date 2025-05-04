@@ -1,0 +1,55 @@
+{
+    "rewrites": [
+      {
+        "source": "/animation_graph",
+        "destination": "/animation_graph.html"
+      },
+
+      {
+        "source": "/boxplot",
+        "destination": "/boxplot.html"
+      },
+
+      {
+        "source": "/dashboard",
+        "destination": "/dashboard.html"
+      },
+
+      {
+        "source": "/heatmap",
+        "destination": "/heatmap.html"
+      },
+
+      {
+        "source": "/radar-chart",
+        "destination": "/radar-chart.html"
+      },
+
+      {
+        "source": "/STANDARDIZATION_SUMMARY",
+        "destination": "/STANDARDIZATION_SUMMARY.html"
+      },
+
+      {
+        "source": "/task2",
+        "destination": "/task2.html"
+      },
+
+      {
+        "source": "/task3",
+        "destination": "/task3.html"
+      },
+
+      {
+        "source": "/treemap",
+        "destination": "/treemap.html"
+      },
+
+      {
+        "source": "/",
+        "destination": "/index.html"
+      }
+    ],
+    "outputDirectory": "/dist"
+  }
+  
