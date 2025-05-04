@@ -1,24 +1,6 @@
-/**
- * Reusable timeline component for visualizations
- * This component handles time series data visualization
- * with animation and playback controls.
- */
-
 import { dashboardColors } from "./dashboard-styles.js";
 import dashboardState from "./dashboard-state.js";
 import { formatDate } from "./js.js";
-
-/**
- * Creates a timeline component with animation controls
- * @param {Object} options - Configuration options
- * @param {string} options.containerId - ID for the container element
- * @param {Array} options.timestamps - Array of Date objects for the timeline
- * @param {Function} options.onTimeChange - Callback when time changes
- * @param {string} options.stateKey - State key for storing current time
- * @param {string} options.playStateKey - State key for storing play state
- * @param {number} options.frameRate - Animation frame rate in ms (default: 1000)
- * @returns {Object} Timeline control object
- */
 export function createTimeline(options) {
   const {
     containerId,
@@ -287,15 +269,6 @@ export function createTimeline(options) {
   };
 }
 
-/**
- * Creates a simple time slider (without play/pause controls)
- * @param {Object} options - Configuration options
- * @param {string} options.containerId - ID for the container element
- * @param {Array} options.timestamps - Array of Date objects for the timeline
- * @param {Function} options.onTimeChange - Callback when time changes
- * @param {string} options.displayFormat - Time display format ('short', 'medium', 'long')
- * @returns {Object} Time slider control object
- */
 export function createTimeSlider(options) {
   const {
     containerId,
@@ -444,18 +417,6 @@ export function createTimeSlider(options) {
   };
 }
 
-/**
- * Creates time range selector with start and end date
- * @param {Object} options - Configuration options
- * @param {string} options.containerId - ID for the container element
- * @param {Date} options.minDate - Minimum date allowed
- * @param {Date} options.maxDate - Maximum date allowed
- * @param {Date} options.startDate - Initial start date
- * @param {Date} options.endDate - Initial end date
- * @param {Function} options.onChange - Callback when range changes
- * @param {string} options.stateKey - State key for storing date range
- * @returns {Object} Time range control object
- */
 export function createTimeRange(options) {
   const {
     containerId,

@@ -40,11 +40,6 @@ export function getMetricLabel(metric) {
   return labels[metric] || metric;
 }
 
-/**
- * Parses and processes report data
- * @param {string} csvText - Raw CSV text to parse
- * @returns {Array} Processed data with parsed dates and calculated fields
- */
 export function processReportData(csvText) {
   const data = d3.csvParse(csvText.replace(/\r\n/g, "\n").trim(), d3.autoType);
   const parse = d3.timeParse("%d/%m/%Y %H:%M");
@@ -64,9 +59,6 @@ export function processReportData(csvText) {
   return data.filter(d => d.time && !isNaN(d.time));
 }
 
-/**
- * Maps neighborhood IDs to their names
- */
 export const neighborhoodMap = {
   1: "Palace Hills",
   2: "Northwest",
@@ -89,12 +81,6 @@ export const neighborhoodMap = {
   19: "West Parton"
 };
 
-/**
- * Formats a date for display
- * @param {Date} date - Date to format
- * @param {string} format - Format type ('short', 'medium', 'long')
- * @returns {string} Formatted date string
- */
 export function formatDate(date, format = 'medium') {
   if (!date) return '';
   
@@ -112,10 +98,6 @@ export function formatDate(date, format = 'medium') {
   }
 }
 
-/**
- * Loads common external libraries required by visualizations
- * @returns {Promise} Resolves when all libraries are loaded
- */
 export async function loadCommonLibraries() {
   await loadScript('https://d3js.org/d3.v7.min.js');
   

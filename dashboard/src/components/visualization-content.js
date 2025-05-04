@@ -1,21 +1,6 @@
-/**
- * Standard visualization content components
- * This provides consistent structure and styling for visualization content.
- */
-
 import { dashboardColors } from "./dashboard-styles.js";
 import dashboardState from "./dashboard-state.js";
 import { getMetricLabel } from "./js.js";
-
-/**
- * Creates a container for visualization content
- * @param {Object} options - Configuration options
- * @param {string} options.id - ID for the container
- * @param {number} options.height - Container height in pixels (default: 500)
- * @param {boolean} options.withPadding - Whether to add padding (default: true)
- * @param {boolean} options.withBorder - Whether to add border (default: true)
- * @returns {HTMLElement} The container element
- */
 export function createVisualizationContainer(options) {
   const {
     id,
@@ -55,14 +40,6 @@ export function createVisualizationContainer(options) {
   return container;
 }
 
-/**
- * Creates a legend for visualizations
- * @param {Object} options - Configuration options
- * @param {string} options.id - ID for the legend
- * @param {Array} options.items - Array of legend items
- * @param {string} options.position - Legend position (default: "bottom")
- * @returns {HTMLElement} The legend element
- */
 export function createLegend(options) {
   const {
     id,
@@ -151,10 +128,6 @@ export function createLegend(options) {
   return legend;
 }
 
-/**
- * Creates a tooltip for use in visualizations
- * @returns {HTMLElement} The tooltip element
- */
 export function createTooltip() {
   const tooltip = document.createElement("div");
   tooltip.className = "visualization-tooltip";
@@ -197,14 +170,7 @@ export function createTooltip() {
   return {
     element: tooltip,
     
-    /**
-     * Shows the tooltip
-     * @param {Object} options - Options for showing tooltip
-     * @param {number} options.x - X coordinate
-     * @param {number} options.y - Y coordinate
-     * @param {string|HTMLElement} options.content - Content to show
-     */
-    show: function({ x, y, content }) {
+        show: function({ x, y, content }) {
       if (typeof content === "string") {
         this.element.innerHTML = content;
       } else if (content instanceof HTMLElement) {
@@ -217,20 +183,12 @@ export function createTooltip() {
       this.element.style.top = `${y}px`;
     },
     
-    /**
-     * Hides the tooltip
-     */
-    hide: function() {
+        hide: function() {
       this.element.style.display = "none";
     }
   };
 }
 
-/**
- * Creates a standard no-data message
- * @param {string} message - Message to display
- * @returns {HTMLElement} The message element
- */
 export function createNoDataMessage(message = "No data available for the selected filters") {
   const container = document.createElement("div");
   container.className = "no-data-message";
@@ -273,14 +231,6 @@ export function createNoDataMessage(message = "No data available for the selecte
   return container;
 }
 
-/**
- * Creates a standard insights card for analysis text
- * @param {Object} options - Configuration options
- * @param {string} options.title - Insights title
- * @param {string|HTMLElement} options.content - Content to display
- * @param {string} options.icon - Optional Font Awesome icon
- * @returns {HTMLElement} The insights card
- */
 export function createInsightsCard(options) {
   const {
     title,
@@ -332,15 +282,6 @@ export function createInsightsCard(options) {
   return card;
 }
 
-/**
- * Creates a metric card to display a key value with label
- * @param {Object} options - Configuration options
- * @param {string} options.label - Metric label
- * @param {string|number} options.value - Metric value
- * @param {string} options.color - Optional color for value
- * @param {string} options.icon - Optional Font Awesome icon
- * @returns {HTMLElement} The metric card
- */
 export function createMetricCard(options) {
   const {
     label,
@@ -403,16 +344,6 @@ export function createMetricCard(options) {
   return card;
 }
 
-/**
- * Creates a metric row for visualization details
- * @param {Object} options - Configuration options
- * @param {string} options.label - Metric label
- * @param {string|number} options.value - Metric value 
- * @param {number|null} options.max - Maximum value for bar (if showing a bar)
- * @param {boolean} options.showBar - Whether to show a bar visualization
- * @param {string} options.barColor - Color for the bar
- * @returns {HTMLElement} The metric row element
- */
 export function createMetricRow(options) {
   const {
     label,
@@ -504,15 +435,6 @@ export function createMetricRow(options) {
   return row;
 }
 
-/**
- * Creates a table to display data with consistent styling
- * @param {Object} options - Configuration options
- * @param {Array} options.headers - Array of column headers
- * @param {Array} options.rows - Array of row data arrays
- * @param {boolean} options.striped - Whether to use striped styling
- * @param {Array} options.columnWidths - Optional array of column widths
- * @returns {HTMLElement} The table element
- */
 export function createDataTable(options) {
   const {
     headers = [],

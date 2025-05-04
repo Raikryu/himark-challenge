@@ -17,7 +17,7 @@ This radar chart visualization enables the comparison of different damage metric
       <option value="all">All Districts</option>
     </select>
   </div>
-  
+
   <div class="control-group">
     <label for="metric-toggle">Compare Mode:</label>
     <div class="toggle-container">
@@ -26,7 +26,7 @@ This radar chart visualization enables the comparison of different damage metric
       <span id="compare-state">Single District</span>
     </div>
   </div>
-  
+
   <div id="comparison-controls" style="display: none;">
     <div class="chips-container" id="district-chips">
     </div>
@@ -51,23 +51,14 @@ This radar chart visualization enables the comparison of different damage metric
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js"></script>
+
 ```js
-import { dashboardColors, getDamageColor, applyDashboardStyles } from "./components/dashboard-styles.js";
-import { loadCommonLibraries, getMetricLabel, formatDate } from "./components/js.js";
-import dashboardState from "./components/dashboard-state.js";
+import { dashboardColors, getDamageColor, applyDashboardStyles } from "./components/dashboard-styles.js"
 
-// Load standardized libraries 
-document.addEventListener("DOMContentLoaded", async () => {
-  await loadCommonLibraries();
-});
-
-/**
- * Initialize the radar chart visualization
- */
-async function initRadarChart() {
-  // Apply standardized styles
+{
   applyDashboardStyles();
-  
+
   const districtSelect = document.getElementById("district-select");
   const compareToggle = document.getElementById("compare-toggle");
   const compareState = document.getElementById("compare-state");
@@ -75,66 +66,50 @@ async function initRadarChart() {
   const districtChips = document.getElementById("district-chips");
   const clearSelectionBtn = document.getElementById("clear-selection");
   const districtAnalysis = document.getElementById("district-analysis");
-  
+
   let radarChart = null;
-  
+
   let selectedDistricts = [];
   let compareMode = false;
+
   const data = await FileAttachment("radar_chart_data.json").json();
-  
+
   const metrics = {
-    sewer_and_water: { 
+    sewer_and_water: {
       displayName: "Sewer & Water",
       color: dashboardColors.damage.categories.sewage
     },
-    power: { 
+    power: {
       displayName: "Power",
       color: dashboardColors.damage.categories.power
     },
-    roads_and_bridges: { 
+    roads_and_bridges: {
       displayName: "Roads & Bridges",
       color: dashboardColors.damage.categories.roads
     },
-    medical: { 
+    medical: {
       displayName: "Medical",
       color: dashboardColors.damage.categories.medical
     },
-    buildings: { 
+    buildings: {
       displayName: "Buildings",
       color: dashboardColors.damage.categories.buildings
     }
   };
-  
+
   const metricKeys = Object.keys(metrics);
-  
+
   populateDistrictDropdown();
-  
+
   createChart("all");
-  
-  // Setup event listeners
+
   districtSelect.addEventListener("change", handleDistrictChange);
   compareToggle.addEventListener("change", handleCompareToggle);
   clearSelectionBtn.addEventListener("click", clearSelectedDistricts);
-  
-  // Subscribe to dashboard state changes
-  if (typeof dashboardState !== 'undefined') {
-    dashboardState.subscribe('filters', (filters) => {
-      if (filters.location) {
-        // Look for the district in the dropdown
-        const districtOption = Array.from(districtSelect.options)
-          .find(option => option.textContent === filters.location);
-        
-        if (districtOption) {
-          districtSelect.value = districtOption.value;
-          handleDistrictChange();
-        }
-      }
-    });
-  }
-  
+
   function populateDistrictDropdown() {
     const districtNames = data.map(d => d.location);
-    
+
     districtNames.forEach(district => {
       const option = document.createElement("option");
       option.value = district;
@@ -142,10 +117,10 @@ async function initRadarChart() {
       districtSelect.appendChild(option);
     });
   }
-  
+
   function handleDistrictChange() {
     const selectedValue = districtSelect.value;
-    
+
     if (compareMode) {
       if (selectedValue !== "all" && !selectedDistricts.includes(selectedValue)) {
         addDistrictToComparison(selectedValue);
@@ -155,11 +130,11 @@ async function initRadarChart() {
       updateDistrictAnalysis(selectedValue);
     }
   }
-  
+
   function handleCompareToggle() {
     compareMode = compareToggle.checked;
     compareState.textContent = compareMode ? "Multi District" : "Single District";
-    
+
     if (compareMode) {
       comparisonControls.style.display = "block";
       if (districtSelect.value !== "all") {
@@ -173,24 +148,24 @@ async function initRadarChart() {
       updateDistrictAnalysis(districtSelect.value);
     }
   }
-  
+
   function addDistrictToComparison(districtName) {
     if (selectedDistricts.includes(districtName)) {
       return;
     }
-    
+
     selectedDistricts.push(districtName);
-    
+
     const chip = document.createElement("div");
     chip.className = "district-chip";
-    
+
     const districtData = data.find(d => d.location === districtName);
-    
-    const damageScore = districtData.damage_score || 
+
+    const damageScore = districtData.damage_score ||
       calculateDamageScore(districtData);
-    
+
     const chipColor = getDamageColor(damageScore);
-    
+
     chip.innerHTML = `
       <span class="chip-name" style="background-color: ${chipColor}">
         ${districtName}
@@ -199,20 +174,20 @@ async function initRadarChart() {
         <i class="fas fa-times"></i>
       </button>
     `;
-    
+
     districtChips.appendChild(chip);
-    
+
     chip.querySelector(".chip-remove").addEventListener("click", function(e) {
       const district = e.currentTarget.dataset.district;
       removeDistrictFromComparison(district);
     });
-    
+
     createComparisonChart();
   }
-  
+
   function removeDistrictFromComparison(districtName) {
     selectedDistricts = selectedDistricts.filter(d => d !== districtName);
-    
+
     const chips = districtChips.querySelectorAll(".district-chip");
     chips.forEach(chip => {
       const removeBtn = chip.querySelector(".chip-remove");
@@ -220,30 +195,30 @@ async function initRadarChart() {
         chip.remove();
       }
     });
-    
+
     createComparisonChart();
   }
-  
+
   function clearSelectedDistricts() {
     selectedDistricts = [];
     districtChips.innerHTML = "";
     createComparisonChart();
   }
-  
+
   function createChart(districtValue) {
     const ctx = document.getElementById("radarChart").getContext("2d");
-    
+
     if (radarChart) {
       radarChart.destroy();
     }
-    
+
     const labels = metricKeys.map(key => metrics[key].displayName);
-    
+
     let datasets = [];
-    
+
     if (districtValue === "all") {
       const avgData = calculateAverageData();
-      
+
       datasets.push({
         label: "All Districts (Average)",
         data: metricKeys.map(key => avgData[key]),
@@ -257,7 +232,7 @@ async function initRadarChart() {
       });
     } else {
       const districtData = data.find(d => d.location === districtValue);
-      
+
       if (districtData) {
         datasets.push({
           label: districtData.location,
@@ -272,7 +247,7 @@ async function initRadarChart() {
         });
       }
     }
-    
+
     radarChart = new Chart(ctx, {
       type: "radar",
       data: {
@@ -310,8 +285,8 @@ async function initRadarChart() {
         plugins: {
           title: {
             display: true,
-            text: districtValue === "all" 
-              ? "Average Damage Metrics Across All Districts" 
+            text: districtValue === "all"
+              ? "Average Damage Metrics Across All Districts"
               : `Damage Assessment for ${districtValue} District`,
             color: "#fff",
             font: {
@@ -355,17 +330,18 @@ async function initRadarChart() {
       }
     });
   }
-  
+
   function createComparisonChart() {
     const ctx = document.getElementById("radarChart").getContext("2d");
-    
+
     if (radarChart) {
       radarChart.destroy();
     }
-    
+
     const labels = metricKeys.map(key => metrics[key].displayName);
-    
+
     let datasets = [];
+
     if (selectedDistricts.length === 0) {
       document.getElementById("radarChart").style.display = "none";
       districtAnalysis.innerHTML = `
@@ -376,15 +352,15 @@ async function initRadarChart() {
       `;
       return;
     }
-    
+
     document.getElementById("radarChart").style.display = "block";
     selectedDistricts.forEach((districtName, index) => {
       const districtData = data.find(d => d.location === districtName);
-      
+
       if (districtData) {
         const hue = (index * 137) % 360;
         const color = `hsl(${hue}, 70%, 60%)`;
-        
+
         datasets.push({
           label: districtName,
           data: metricKeys.map(key => districtData[key]),
@@ -398,7 +374,7 @@ async function initRadarChart() {
         });
       }
     });
-    
+
     radarChart = new Chart(ctx, {
       type: "radar",
       data: {
@@ -478,70 +454,71 @@ async function initRadarChart() {
         }
       }
     });
-    
+
     updateComparativeAnalysis();
   }
-  
+
   function calculateAverageData() {
     const avgData = {};
-    
+
     metricKeys.forEach(key => {
       avgData[key] = 0;
     });
-    
+
     data.forEach(district => {
       metricKeys.forEach(key => {
         avgData[key] += district[key] || 0;
       });
     });
-    
+
     metricKeys.forEach(key => {
       avgData[key] = avgData[key] / data.length;
     });
-    
+
     return avgData;
   }
-  
+
   function calculateDamageScore(district) {
     let sum = 0;
     let count = 0;
-    
+
     metricKeys.forEach(key => {
       if (district[key] !== undefined) {
         sum += district[key];
         count++;
       }
     });
-    
+
     return count > 0 ? sum / count : 0;
   }
-  
+
   function updateDistrictAnalysis(districtName) {
     if (districtName === "all") {
       showOverallAnalysis();
       return;
     }
-    
+
     const districtData = data.find(d => d.location === districtName);
-    
+
     if (!districtData) {
       districtAnalysis.innerHTML = `<p>No data available for ${districtName}</p>`;
       return;
     }
-    
+
     const damageScore = districtData.damage_score || calculateDamageScore(districtData);
-    
+
     const metricValues = metricKeys.map(key => ({
       key: key,
       value: districtData[key] || 0,
       name: metrics[key].displayName
     }));
-    
+
     const highestDamage = [...metricValues].sort((a, b) => b.value - a.value)[0];
     const lowestDamage = [...metricValues].sort((a, b) => a.value - b.value)[0];
+
     districtAnalysis.innerHTML = `
       <h3>${districtName} District Analysis</h3>
-      
+
       <div class="analysis-section">
         <div class="analysis-metric">
           <div class="metric-label">Overall Damage Score</div>
@@ -552,7 +529,7 @@ async function initRadarChart() {
             ${getDamageSeverityDescription(damageScore)}
           </div>
         </div>
-        
+
         <div class="analysis-highlights">
           <div class="highlight-item">
             <div class="highlight-label">Most Affected</div>
@@ -563,7 +540,7 @@ async function initRadarChart() {
               Score: ${highestDamage.value.toFixed(2)}/10
             </div>
           </div>
-          
+
           <div class="highlight-item">
             <div class="highlight-label">Least Affected</div>
             <div class="highlight-value" style="color: ${getDamageColor(lowestDamage.value)}">
@@ -575,38 +552,39 @@ async function initRadarChart() {
           </div>
         </div>
       </div>
-      
+
       <div class="analysis-recommendation">
         <h4>Priority Recommendations</h4>
         <p>${getRecommendation(districtData)}</p>
       </div>
     `;
   }
-  
+
   function showOverallAnalysis() {
     const avgData = calculateAverageData();
-    
+
     const districtsByDamage = [...data].sort((a, b) => {
       const scoreA = a.damage_score || calculateDamageScore(a);
       const scoreB = b.damage_score || calculateDamageScore(b);
       return scoreB - scoreA;
     });
-    
+
     const mostDamaged = districtsByDamage[0];
     const leastDamaged = districtsByDamage[districtsByDamage.length - 1];
-    
+
     const avgMetricValues = metricKeys.map(key => ({
       key: key,
       value: avgData[key],
       name: metrics[key].displayName
     }));
-    
+
     const highestAvgDamage = [...avgMetricValues].sort((a, b) => b.value - a.value)[0];
+
     const overallAvg = metricKeys.reduce((sum, key) => sum + avgData[key], 0) / metricKeys.length;
-    
+
     districtAnalysis.innerHTML = `
       <h3>St. Himark Overall Analysis</h3>
-      
+
       <div class="analysis-section">
         <div class="analysis-metric">
           <div class="metric-label">Average Damage Score</div>
@@ -617,7 +595,7 @@ async function initRadarChart() {
             ${getDamageSeverityDescription(overallAvg)}
           </div>
         </div>
-        
+
         <div class="analysis-highlights">
           <div class="highlight-item">
             <div class="highlight-label">Most Damaged District</div>
@@ -628,7 +606,7 @@ async function initRadarChart() {
               Score: ${(mostDamaged.damage_score || calculateDamageScore(mostDamaged)).toFixed(2)}/10
             </div>
           </div>
-          
+
           <div class="highlight-item">
             <div class="highlight-label">Least Damaged District</div>
             <div class="highlight-value">
@@ -639,7 +617,7 @@ async function initRadarChart() {
             </div>
           </div>
         </div>
-        
+
         <div class="analysis-trends">
           <h4>Key Findings</h4>
           <ul>
@@ -651,12 +629,12 @@ async function initRadarChart() {
       </div>
     `;
   }
-  
+
   function updateComparativeAnalysis() {
     if (selectedDistricts.length === 0) {
       return;
     }
-    
+
     const selectedData = selectedDistricts.map(district => {
       const districtData = data.find(d => d.location === district);
       return {
@@ -665,14 +643,15 @@ async function initRadarChart() {
         score: districtData.damage_score || calculateDamageScore(districtData)
       };
     });
-    
+
     selectedData.sort((a, b) => b.score - a.score);
-    
+
     const differences = findKeyDifferences(selectedData);
     const similarities = findKeySimilarities(selectedData);
+
     districtAnalysis.innerHTML = `
       <h3>Comparative Analysis</h3>
-      
+
       <div class="comparison-ranking">
         <h4>Districts Ranked by Overall Damage</h4>
         <ol class="ranking-list">
@@ -686,51 +665,51 @@ async function initRadarChart() {
           `).join('')}
         </ol>
       </div>
-      
+
       <div class="comparison-insights">
         <div class="insight-column">
           <h4>Key Differences</h4>
           <ul>
             ${differences.map(diff => `
               <li>
-                <strong>${diff.metric}:</strong> 
+                <strong>${diff.metric}:</strong>
                 ${diff.description}
               </li>
             `).join('')}
           </ul>
         </div>
-        
+
         <div class="insight-column">
           <h4>Key Similarities</h4>
           <ul>
             ${similarities.map(sim => `
               <li>
-                <strong>${sim.metric}:</strong> 
+                <strong>${sim.metric}:</strong>
                 ${sim.description}
               </li>
             `).join('')}
           </ul>
         </div>
       </div>
-      
+
       <div class="overall-recommendation">
         <h4>Action Recommendations</h4>
         <p>${generateComparisonRecommendation(selectedData)}</p>
       </div>
     `;
   }
-  
+
   function getRecommendation(districtData) {
     const metricValues = metricKeys.map(key => ({
       key: key,
       value: districtData[key] || 0,
       name: metrics[key].displayName
     }));
-    
+
     metricValues.sort((a, b) => b.value - a.value);
-    
+
     const topIssues = metricValues.slice(0, 2);
-    
+
     if (topIssues[0].value > 7) {
       return `Immediate emergency response needed for ${topIssues[0].name} infrastructure with critical damage level of ${topIssues[0].value.toFixed(1)}/10. Secondary focus should be on ${topIssues[1].name} restoration with damage level of ${topIssues[1].value.toFixed(1)}/10.`;
     } else if (topIssues[0].value > 5) {
@@ -739,7 +718,7 @@ async function initRadarChart() {
       return `Focus on assessment and preventative maintenance for ${topIssues[0].name} and ${topIssues[1].name} infrastructure. Both show moderate damage levels that should be monitored for potential deterioration.`;
     }
   }
-  
+
   function getDamageSeverityDescription(score) {
     if (score <= 2) {
       return "Minimal damage requiring routine maintenance";
@@ -753,7 +732,7 @@ async function initRadarChart() {
       return "Critical damage requiring emergency intervention";
     }
   }
-  
+
   function calculateVariability() {
     const scores = data.map(d => d.damage_score || calculateDamageScore(d));
     const min = Math.min(...scores);
@@ -761,7 +740,7 @@ async function initRadarChart() {
     const variability = ((max - min) / min) * 100;
     return variability;
   }
-  
+
   function findKeyDifferences(selectedData) {
     if (selectedData.length < 2) {
       return [{
@@ -769,19 +748,19 @@ async function initRadarChart() {
         description: "Select at least two districts to see differences."
       }];
     }
-    
+
     const differences = [];
-    
+
     metricKeys.forEach(key => {
       const values = selectedData.map(d => d.data[key]);
       const min = Math.min(...values);
       const max = Math.max(...values);
       const diff = max - min;
-      
+
       if (diff > 2) {
         const highestDistrict = selectedData.find(d => d.data[key] === max);
         const lowestDistrict = selectedData.find(d => d.data[key] === min);
-        
+
         differences.push({
           metric: metrics[key].displayName,
           value: diff,
@@ -789,12 +768,12 @@ async function initRadarChart() {
         });
       }
     });
-    
+
     differences.sort((a, b) => b.value - a.value);
-    
+
     return differences.slice(0, 3);
   }
-  
+
   function findKeySimilarities(selectedData) {
     if (selectedData.length < 2) {
       return [{
@@ -802,15 +781,15 @@ async function initRadarChart() {
         description: "Select at least two districts to see similarities."
       }];
     }
-    
+
     const similarities = [];
-    
+
     metricKeys.forEach(key => {
       const values = selectedData.map(d => d.data[key]);
       const min = Math.min(...values);
       const max = Math.max(...values);
       const diff = max - min;
-      
+
       if (diff < 1.5) {
         similarities.push({
           metric: metrics[key].displayName,
@@ -819,24 +798,24 @@ async function initRadarChart() {
         });
       }
     });
-    
+
     similarities.sort((a, b) => a.value - b.value);
-    
+
     return similarities.length > 0 ? similarities.slice(0, 3) : [{
       metric: "Analysis",
       description: "No significant similarities found between the selected districts."
     }];
   }
-  
+
   function generateComparisonRecommendation(selectedData) {
     if (selectedData.length <= 1) {
       return "Select multiple districts to generate comparative recommendations.";
     }
-    
+
     const mostDamaged = selectedData[0];
-    
+
     const criticalIssues = {};
-    
+
     metricKeys.forEach(key => {
       criticalIssues[key] = 0;
       selectedData.forEach(district => {
@@ -845,15 +824,15 @@ async function initRadarChart() {
         }
       });
     });
-    
-    const mostCommonIssue = Object.keys(criticalIssues).reduce((a, b) => 
+
+    const mostCommonIssue = Object.keys(criticalIssues).reduce((a, b) =>
       criticalIssues[a] > criticalIssues[b] ? a : b
     );
-    
+
     if (criticalIssues[mostCommonIssue] > 0) {
       const affectedCount = criticalIssues[mostCommonIssue];
       const totalCount = selectedData.length;
-      
+
       return `Prioritize ${metrics[mostCommonIssue].displayName} repairs across ${affectedCount} of ${totalCount} selected districts, with immediate focus on ${mostDamaged.name} which has the highest overall damage score of ${mostDamaged.score.toFixed(1)}/10. Coordinated response teams should be deployed to address this common critical issue.`;
     } else {
       return `Focus resources on ${mostDamaged.name} district which has the highest overall damage score of ${mostDamaged.score.toFixed(1)}/10. Other selected districts show less severe damage but should be monitored. Regular assessment of infrastructure across all districts is recommended.`;
@@ -1036,7 +1015,7 @@ async function initRadarChart() {
   font-size: 0.875rem;
 }
 
-.analysis-recommendation, 
+.analysis-recommendation,
 .analysis-trends,
 .comparison-insights,
 .comparison-ranking,
@@ -1116,8 +1095,3 @@ async function initRadarChart() {
   }
 }
 </style>
-
-<script>
-// Initialize the radar chart
-initRadarChart();
-</script>

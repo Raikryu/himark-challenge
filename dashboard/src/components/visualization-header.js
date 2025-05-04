@@ -1,22 +1,5 @@
-/**
- * Standard visualization header component
- * This creates a consistent header for all visualizations with title, description,
- * and optional controls section.
- */
-
 import { dashboardColors } from "./dashboard-styles.js";
 import dashboardState from "./dashboard-state.js";
-
-/**
- * Creates a header for a visualization
- * @param {Object} options - Configuration options
- * @param {string} options.title - Title of the visualization
- * @param {string} options.description - Optional description text
- * @param {string} options.icon - Optional Font Awesome icon class
- * @param {boolean} options.includeControls - Whether to include a controls container
- * @param {string} options.containerId - Optional ID for the header container
- * @returns {HTMLElement} The header DOM element
- */
 export function createVisualizationHeader(options) {
   const {
     title,
@@ -108,16 +91,6 @@ export function createVisualizationHeader(options) {
   return header;
 }
 
-/**
- * Creates a standard filter dropdown
- * @param {Object} options - Configuration options  
- * @param {string} options.id - ID for the select element
- * @param {string} options.label - Label text
- * @param {Array} options.options - Array of {value, label} objects for dropdown options
- * @param {string} options.defaultValue - Default selected value
- * @param {string} options.stateKey - Key in dashboardState to bind to
- * @returns {HTMLElement} The filter dropdown container
- */
 export function createFilterDropdown(options) {
   const {
     id,
@@ -175,10 +148,6 @@ export function createFilterDropdown(options) {
   return container;
 }
 
-/**
- * Creates a loading indicator element
- * @returns {HTMLElement} The loading indicator
- */
 export function createLoadingIndicator() {
   const loader = document.createElement("div");
   loader.className = "visualization-loader";
@@ -221,11 +190,6 @@ export function createLoadingIndicator() {
   return loader;
 }
 
-/**
- * Creates an error message element
- * @param {string} message - Error message to display
- * @returns {HTMLElement} The error message element
- */
 export function createErrorMessage(message) {
   const errorElement = document.createElement("div");
   errorElement.className = "visualization-error";
