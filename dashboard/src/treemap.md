@@ -157,7 +157,6 @@ async function initTreemap() {
   try {
     reportData = await FileAttachment("data/cleaned_mc1-reports-data.csv").csv();
   } catch (error) {
-    console.error("Error loading report data:", error);
   }
 
   const districtMetrics = {};
@@ -232,37 +231,30 @@ async function initTreemap() {
     });
   }
 
-  // Function to create color scale based on values
   function createColorScale(values) {
     const min = 0;
     const max = d3.max(values);
 
-    // Use a 3-point color scale for better contrast
     return d3.scaleLinear()
       .domain([min, max * 0.3, max])
       .range(["#f7fbff", "#fdae61", "#d73027"]);
   }
 
-  // Function to render the treemap
   function renderTreemap() {
       svg.selectAll("*").remove();
 
       const data = JSON.parse(JSON.stringify(baseTreemapData));
 
       data.children.forEach(district => {
-      // Store original value if not already stored
       if (!district.originalValue) {
         district.originalValue = district.value;
       }
 
-      // Apply different value based on selected metric if district metrics are available
       if (districtMetrics[district.name]) {
         // Use the selected metric value, or fall back to original value
         const metricValue = districtMetrics[district.name][currentMetric];
 
         if (metricValue !== undefined && !isNaN(metricValue)) {
-          // Scale the value to maintain relative sizes across different metrics
-          // This helps create a more consistent visual representation
           const scaleFactor = currentMetric === "combined_damage" ? 10000 : 20000;
           district.value = metricValue * scaleFactor;
         } else {
@@ -273,25 +265,20 @@ async function initTreemap() {
       }
     });
 
-    // Create hierarchical data
     const root = d3.hierarchy(data)
       .sum(d => d.value);
 
-    // Sort by value for better visual representation
     root.sort((a, b) => b.value - a.value);
 
-    // Create the treemap layout with padding
     d3.treemap()
       .size([width, height])
       .paddingOuter(4)
       .paddingInner(2)
       .round(true)(root);
 
-    // Generate a color scale based on leaf values
     const values = root.leaves().map(d => d.value);
     const colorScale = createColorScale(values);
 
-    // Create a container for the cells
     const cells = svg.selectAll(".treemap-cell")
       .data(root.leaves())
       .enter()
@@ -299,25 +286,20 @@ async function initTreemap() {
       .attr("class", "treemap-cell")
       .attr("transform", d => `translate(${d.x0},${d.y0})`);
 
-    // Add rectangles for each cell
     cells.append("rect")
       .attr("width", d => Math.max(0, d.x1 - d.x0))
       .attr("height", d => Math.max(0, d.y1 - d.y0))
       .attr("fill", d => colorScale(d.value))
       .attr("class", "treemap-cell")
       .on("mouseover", function(event, d) {
-        // Highlight on hover
         d3.select(this)
           .attr("stroke", "#ffffff")
           .attr("stroke-width", 3);
 
-        // Get normalized display value
         let displayValue = d.value;
         if (districtMetrics[d.data.name]) {
           displayValue = districtMetrics[d.data.name][currentMetric];
         }
-
-        // Show tooltip
         tooltip
           .style("opacity", 1)
           .html(`
@@ -328,53 +310,41 @@ async function initTreemap() {
           .style("top", (event.pageY + 10) + "px");
       })
       .on("mouseout", function() {
-        // Reset highlight
         d3.select(this)
           .attr("stroke", "rgba(255, 255, 255, 0.5)")
           .attr("stroke-width", 1.5);
-
-        // Hide tooltip
         tooltip.style("opacity", 0);
       })
       .on("click", function(event, d) {
-        // When clicked, set the location filter in dashboard state
         dashboardState.setState('filters.location', d.data.name);
       });
 
-    // Add text labels for cell names
     cells.append("text")
       .attr("x", 5)
       .attr("y", 15)
       .attr("class", "treemap-label")
       .attr("fill", d => getBestTextColor(colorScale(d.value)))
       .text(d => {
-        // Check if there's enough space for text
         const cellWidth = d.x1 - d.x0;
         const cellHeight = d.y1 - d.y0;
 
-        // Only show text if there's enough space
         if (cellWidth < 40 || cellHeight < 30) return "";
 
         const name = d.data.name;
-        // Truncate if needed
         return name.length > 12 ? name.substring(0, 10) + "..." : name;
       });
 
-    // Add value text
     cells.append("text")
       .attr("x", 5)
       .attr("y", 30)
       .attr("class", "treemap-value")
       .attr("fill", d => getBestTextColor(colorScale(d.value)))
       .text(d => {
-        // Check if there's enough space for text
         const cellWidth = d.x1 - d.x0;
         const cellHeight = d.y1 - d.y0;
 
-        // Only show value if there's enough space
         if (cellWidth < 40 || cellHeight < 30) return "";
 
-        // Get normalized display value
         let displayValue = d.value;
         if (districtMetrics[d.data.name]) {
           displayValue = districtMetrics[d.data.name][currentMetric];
@@ -383,23 +353,19 @@ async function initTreemap() {
         return d3.format(",.1f")(displayValue);
       });
 
-    // Create legend
     createLegend(colorScale);
   }
 
-  // Create a legend for the treemap
   function createLegend(colorScale) {
     const legendContainer = document.getElementById("treemap-legend");
     legendContainer.innerHTML = "";
 
-    // Create 5 points on the scale to display
     const legendValues = [0, 0.25, 0.5, 0.75, 1].map(t => {
       const domain = colorScale.domain();
       const range = domain[domain.length - 1] - domain[0];
       return domain[0] + range * t;
     });
 
-    // Add legend items
     legendValues.forEach(value => {
       const item = document.createElement("div");
       item.className = "legend-item";
@@ -408,10 +374,8 @@ async function initTreemap() {
       colorBox.className = "legend-color";
       colorBox.style.backgroundColor = colorScale(value);
 
-      // Get normalized display value for legend
       let displayValue = value;
       if (value > 0) {
-        // For the legend, we want to show normalized values on a 0-10 scale
         const domain = colorScale.domain();
         const normalizedValue = (value / domain[domain.length - 1]) * 10;
         displayValue = normalizedValue;
@@ -425,7 +389,6 @@ async function initTreemap() {
       legendContainer.appendChild(item);
     });
 
-    // Add title for the metric
     const metricTitle = document.createElement("div");
     metricTitle.style.width = "100%";
     metricTitle.style.textAlign = "center";
@@ -436,7 +399,6 @@ async function initTreemap() {
     legendContainer.insertBefore(metricTitle, legendContainer.firstChild);
   }
 
-  // Helper function to choose black or white text based on background color
   function getBestTextColor(bgColor) {
     // Convert the background color to RGB
     let color;
@@ -455,19 +417,15 @@ async function initTreemap() {
     return "white"; // Default to white
   }
 
-  // Process the district data when the dashboard loads
   await processDistrictData();
 
-  // Set up the metric selector
   const metricSelector = document.getElementById("treemap-metric-selector");
   metricSelector.addEventListener("change", () => {
     currentMetric = metricSelector.value;
 
-    // If a new metric is selected, update the treemap
     renderTreemap();
   });
 
-  // Subscribe to dashboard state changes to update the visualization
   dashboardState.subscribe('filters', (filters) => {
     if (filters.metric && filters.metric !== currentMetric) {
       // Update the dropdown to match dashboard state
@@ -477,10 +435,8 @@ async function initTreemap() {
     renderTreemap();
   });
 
-  // Initial render
   renderTreemap();
 }
 
-// Initialize the treemap visualization
 initTreemap();
 ```
