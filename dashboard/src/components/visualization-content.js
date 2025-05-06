@@ -44,14 +44,13 @@ export function createLegend(options) {
   const {
     id,
     items = [],
-    position = "bottom", // "bottom", "top", "right", "left"
+    position = "bottom",
   } = options;
 
   const legend = document.createElement("div");
   legend.className = `visualization-legend legend-${position}`;
   legend.id = id;
 
-  // Create legend items
   items.forEach(item => {
     const legendItem = document.createElement("div");
     legendItem.className = "legend-item";
@@ -364,7 +363,6 @@ export function createMetricRow(options) {
   valueElement.className = "metric-row-value";
   
   if (showBar && max > 0) {
-    // Calculate percentage
     const percentage = Math.min(100, (value / max) * 100);
     const color = barColor || dashboardColors.primary;
     
@@ -446,7 +444,6 @@ export function createDataTable(options) {
   const table = document.createElement("table");
   table.className = `data-table ${striped ? 'striped' : ''}`;
   
-  // Create header
   if (headers.length > 0) {
     const thead = document.createElement("thead");
     const headerRow = document.createElement("tr");
@@ -466,7 +463,6 @@ export function createDataTable(options) {
     table.appendChild(thead);
   }
   
-  // Create body
   const tbody = document.createElement("tbody");
   
   rows.forEach(row => {

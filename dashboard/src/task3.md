@@ -64,18 +64,12 @@ const uniqueDays = [...new Set(heatmapData.map(d => formatDate(d.time)))].sort()
 
 if (!uniqueDays || uniqueDays.length === 0) {
   uniqueDays.push("2023-01-01");
-  console.warn("No unique days found in data, using default value");
 }
 
 const dayGroups = {};
 uniqueDays.forEach((date, index) => {
   dayGroups[`day${index+1}`] = heatmapData.filter(d => formatDate(d.time) === date);
 });
-
-console.log("Day groups:", Object.keys(dayGroups));
-console.log("First day data:", dayGroups.day1 ? dayGroups.day1.slice(0, 5) : "No data for day1");
-console.log("Unique days count:", uniqueDays.length);
-console.log("Unique days:", uniqueDays);
 
 const hourlyGroups = d3.groups(heatmapData, d => d.time.getHours());
 const hourlyData = hourlyGroups.map(([hour, values]) => {
@@ -124,11 +118,6 @@ const createDashboardState = () => ({
 
 const dashboardState = createDashboardState();
 
-console.log("Loaded uncertainty data:", uncertaintyData.slice(0, 3));
-console.log("Hourly data:", hourlyData);
-console.log("Time periods:", timePeriods);
-console.log("Unique days:", uniqueDays);
-console.log("Heatmap max value:", heatmapMax);
 ```
 
 ```js
@@ -187,8 +176,6 @@ const bubbleData = locationUncertaintyData.flatMap(d =>
     }))
 );
 
-console.log("Average damage data:", avgDamageData.slice(0, 3));
-console.log("Location uncertainty data:", locationUncertaintyData.slice(0, 3));
 ```
 
 ```js
@@ -679,9 +666,6 @@ function renderDayHeatmap() {
 
   const selectedDayData = dayGroups[dashboardState.selectedDay] || [];
 
-  console.log("Rendering heatmap for day:", dashboardState.selectedDay);
-  console.log("Selected day data count:", selectedDayData.length);
-
   if (selectedDayData.length === 0) {
     container.innerHTML = `<div class="debug-info">No data available for selected day: ${dashboardState.selectedDay}</div>`;
     return;
@@ -721,8 +705,6 @@ function renderDayHeatmap() {
     if (timeWindowValue) {
       timeWindowValue.textContent = `${startIndex+1}-${startIndex+uniqueTimes.length} of ${allTimePoints}`;
     }
-
-    console.log(`Showing time window ${startIndex+1}-${startIndex+uniqueTimes.length} of ${allTimePoints} total time points`);
   } else {
     const timeWindowValue = document.getElementById("time-window-value");
     if (timeWindowValue) {
@@ -733,7 +715,6 @@ function renderDayHeatmap() {
   let damageTypes = Object.keys(damageTypeLabels);
 
   if (dashboardState.damageTypeFilter !== "all") {
-    console.log("Filtering heatmap to show only:", dashboardState.damageTypeFilter);
     damageTypes = [dashboardState.damageTypeFilter];
   }
 
@@ -1593,8 +1574,6 @@ function updateDashboard() {
 
   if (daySelectElement && (daySelectElement.options.length === 0 ||
      (daySelectElement.options.length === 1 && daySelectElement.options[0].text === "Loading days..."))) {
-    console.warn("Day select element has no options or only placeholder, populating now");
-
     daySelectElement.innerHTML = "";
 
     if (uniqueDays && uniqueDays.length > 0) {
@@ -1604,29 +1583,17 @@ function updateDashboard() {
         option.textContent = day;
         daySelectElement.appendChild(option);
       });
-      console.log("Added", uniqueDays.length, "day options to dropdown");
     } else {
       const option = document.createElement("option");
       option.value = "day1";
       option.textContent = "Day 1";
       daySelectElement.appendChild(option);
-      console.log("No unique days found, added default day option");
     }
   }
 
   if (daySelectElement && daySelectElement.options.length > 0) {
     selectedDay = daySelectElement.value;
-    console.log("Selected day:", selectedDay, "from dropdown with", daySelectElement.options.length, "options");
-  } else {
-    console.warn("Day select element still has issues, using default day1");
   }
-
-  console.log("Updating dashboard with filters:", {
-    damageTypeFilter,
-    timePeriodFilter,
-    uncertaintyThreshold,
-    selectedDay
-  });
 
   dashboardState.damageTypeFilter = damageTypeFilter;
   dashboardState.timePeriodFilter = timePeriodFilter;
@@ -1639,13 +1606,6 @@ function updateDashboard() {
     dashboardState.visibleDamageTypes = new Set([damageTypeFilter]);
   }
 
-  console.log("Dashboard state updated:", {
-    damageType: dashboardState.damageTypeFilter,
-    timePeriod: dashboardState.timePeriodFilter,
-    threshold: dashboardState.uncertaintyThreshold,
-    day: dashboardState.selectedDay
-  });
-
   document.getElementById("threshold-value").textContent = uncertaintyThreshold.toFixed(1);
 
   renderOverviewHeatmap();
@@ -1656,25 +1616,20 @@ function updateDashboard() {
   setTimeout(() => {
     try {
       renderNetworkDiagram();
-      console.log("Network diagram rendered successfully");
     } catch (e) {
-      console.error("Error rendering network diagram:", e);
     }
   }, 100);
 
   setTimeout(() => {
     try {
       renderBubbleChart();
-      console.log("Bubble chart rendered successfully");
     } catch (e) {
-      console.error("Error rendering bubble chart:", e);
     }
   }, 200);
 }
 
 function initializeEventListeners() {
   document.getElementById("damage-type-filter").addEventListener("change", function() {
-    console.log("Damage type changed to:", this.value);
     dashboardState.damageTypeFilter = this.value;
     updateDashboard();
   });
@@ -1701,8 +1656,6 @@ function initializeEventListeners() {
   });
 
   document.getElementById("reset-button").addEventListener("click", function() {
-    console.log("Resetting dashboard filters");
-
     Object.assign(dashboardState, createDashboardState());
 
     document.getElementById("damage-type-filter").value = "all";
@@ -1717,53 +1670,25 @@ function initializeEventListeners() {
   window.addEventListener("resize", function() {
     if (this.resizeTimeout) clearTimeout(this.resizeTimeout);
     this.resizeTimeout = setTimeout(function() {
-      console.log("Window resized, updating all visualizations");
-
       renderHourlyChart();
       renderTimePeriodTable();
-
       renderDayHeatmap();
       renderNetworkDiagram();
       renderBubbleChart();
-
-      const containers = [
-        "#day-heatmap-container",
-        "#hourly-chart-container",
-        "#network-diagram",
-        "#bubble-chart"
-      ];
-
-      containers.forEach(selector => {
-        const el = document.querySelector(selector);
-        if (el) {
-          console.log(`${selector} size after resize:`, el.clientWidth, "x", el.clientHeight);
-        }
-      });
     }, 300);
   });
 }
 
 function initializeDashboard() {
-  console.log("Initializing dashboard...");
-
   try {
-    console.log("Available data:");
-    console.log("- Uncertainty data records:", uncertaintyData.length);
-    console.log("- Average damage data records:", avgDamageData.length);
-    console.log("- Location uncertainty data records:", locationUncertaintyData.length);
-    console.log("- Unique days:", uniqueDays);
-    console.log("- Time values length:", timeValues.length);
-
     const daySelect = document.getElementById("day-select");
     if (daySelect && daySelect.options.length === 0 && uniqueDays && uniqueDays.length > 0) {
-      console.log("Day select has no options, populating manually");
       uniqueDays.forEach((day, index) => {
         const option = document.createElement("option");
         option.value = `day${index+1}`;
         option.textContent = day;
         daySelect.appendChild(option);
       });
-      console.log("Added day options:", daySelect.options.length);
     }
 
     initializeEventListeners();
@@ -1818,10 +1743,7 @@ function initializeDashboard() {
 
     renderOverviewHeatmap();
     updateDashboard();
-
-    console.log("Dashboard initialized successfully with overview and detail views");
   } catch (e) {
-    console.error("Error initializing dashboard:", e);
   }
 }
 

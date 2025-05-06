@@ -1,4 +1,3 @@
-
 export const dashboardColors = {
   primary: "#2a9d8f",
   secondary: "#e76f51",
@@ -29,7 +28,7 @@ export const dashboardColors = {
     ],
     categories: {
       buildings: "#4e79a7",
-      power: "#f28e2c", 
+      power: "#f28e2c",
       medical: "#e15759",
       sewage: "#76b7b2",
       roads: "#59a14f"

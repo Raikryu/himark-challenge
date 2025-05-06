@@ -1,10 +1,3 @@
-
----
-title: St. Himark Damage Progression Visualization
-theme: dashboard
-toc: false
----
-
 # St. Himark Damage Progression Visualization
 
 This interactive visualization tracks damage metrics across St. Himark neighborhoods following the earthquake. Use the controls to animate the visualization and identify critical patterns.
@@ -25,7 +18,7 @@ const dashboardColors = {
 const neighborhoodMap = {
   1: "Palace Hills",
   2: "Northwest",
-  3: "Old Town", 
+  3: "Old Town",
   4: "Safe Town",
   5: "Southwest",
   6: "Downtown",
@@ -984,11 +977,11 @@ function generateInsights() {
 
   const sortedLocations = Array.from(locationAvgDamage.entries())
     .sort((a, b) => b[1] - a[1]);
-  
+
   const mostDamagedLocationId = sortedLocations[0]?.[0];
   const mostDamagedLocationName = neighborhoodMap[mostDamagedLocationId] || mostDamagedLocationId;
   const mostDamagedLocationValue = sortedLocations[0]?.[1];
-  
+
   const mostDamagedLocation = [mostDamagedLocationName, mostDamagedLocationValue];
 
   const locationVariability = new Map();
@@ -1001,11 +994,11 @@ function generateInsights() {
 
   const sortedVariableLocations = Array.from(locationVariability.entries())
     .sort((a, b) => b[1] - a[1]);
-  
+
   const mostVariableLocationId = sortedVariableLocations[0]?.[0];
   const mostVariableLocationName = neighborhoodMap[mostVariableLocationId] || mostVariableLocationId;
   const mostVariableLocationValue = sortedVariableLocations[0]?.[1];
-  
+
   const mostVariableLocation = [mostVariableLocationName, mostVariableLocationValue];
 
   let insightsHtml = `
