@@ -77,11 +77,8 @@ function createFallbackData() {
 
 ```js
 const data = await FileAttachment("data/processed_neighborhood_reliability.json").json().catch(() => {
-  console.warn("Error loading data, using fallback placeholder data");
   return createFallbackData();
 });
-
-console.log("Loaded neighborhood data:", data);
 ```
 
 ```js
@@ -97,8 +94,6 @@ for (const metric of metrics) {
     q3: d3.quantile(values, 0.75)
   };
 }
-
-console.log("Calculated statistics:", stats);
 ```
 
 ```js
@@ -440,7 +435,7 @@ select {
   width: 100%;
   cursor: pointer;
   appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='6' viewBox='0 0 12 6'%3E%3Cpath fill='%23ffffff' d='M0 0h12L6 6z'/%3E%3C/svg%3E");
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http:
   background-repeat: no-repeat;
   background-position: right 12px center;
   background-size: 12px;
@@ -492,12 +487,12 @@ select option {
 }
 </style>`;
 
-// Apply styles
+
 display(dashboardStyle);
 ```
 
 ```js
-// Create HTML containers for the dashboard
+
 html`
 <div class="dashboard-controls">
   <div class="control-group">
@@ -598,8 +593,8 @@ html`
 ```
 
 ```js
-// Main visualization code
-// Assign reliability categories
+
+
 const neighborhoods = data.map(n => ({
   ...n,
   reliability_category: n.reliability_score > stats.reliability_score.q3 ? "High" :
@@ -609,19 +604,19 @@ const neighborhoods = data.map(n => ({
                       colors.reliability.medium
 }));
 
-// Track selected neighborhoods - initialize with a few example neighborhoods for demonstration
+
 const selectedNeighborhoods = new Set(["Old Town", "Wilson Forest", "Palace Hills"]);
 
-// Define width for charts
+
 const width = 800;
 
-// Set up filter elements
+
 const filters = {
   reliability: "All Categories",
   missingData: 20
 };
 
-// Get DOM elements
+
 const reliabilityFilter = document.getElementById("reliability-filter");
 const missingDataThreshold = document.getElementById("missing-data-threshold");
 const thresholdValue = document.getElementById("threshold-value");
@@ -630,17 +625,17 @@ const resetButton = document.getElementById("reset-button");
 const selectedNeighborhoodsList = document.getElementById("selected-neighborhoods-list");
 const noSelectionMessage = document.getElementById("no-selection-message");
 
-// Populate neighborhood dropdown
+
 function populateNeighborhoodDropdown() {
-  // Clear existing options except the first one
+  
   while (neighborhoodSelect.options.length > 1) {
     neighborhoodSelect.remove(1);
   }
 
-  // Add neighborhood options
+  
   const filteredData = getFilteredData();
   filteredData.forEach(n => {
-    // Skip already selected neighborhoods
+    
     if (selectedNeighborhoods.has(n.neighborhood)) return;
 
     const option = document.createElement("option");
@@ -650,7 +645,7 @@ function populateNeighborhoodDropdown() {
   });
 }
 
-// Initialize event listeners
+
 reliabilityFilter.addEventListener("change", () => {
   filters.reliability = reliabilityFilter.value;
   renderDashboard();
@@ -667,41 +662,41 @@ neighborhoodSelect.addEventListener("change", () => {
   if (selected) {
     selectedNeighborhoods.add(selected);
     renderDashboard();
-    // Reset select to placeholder
+    
     neighborhoodSelect.value = "";
   }
 });
 
 resetButton.addEventListener("click", () => {
-  // Reset filters to default
+  
   filters.reliability = "All Categories";
   filters.missingData = 20;
 
-  // Reset DOM elements
+  
   reliabilityFilter.value = filters.reliability;
   missingDataThreshold.value = filters.missingData;
   thresholdValue.textContent = `${filters.missingData}%`;
 
-  // Clear selections
+  
   selectedNeighborhoods.clear();
 
-  // Re-render dashboard
+  
   renderDashboard();
 });
 
-// Filter updates
+
 function updateFilters(type, value) {
   filters[type] = value;
   renderDashboard();
   return filters;
 }
 
-// Apply filters and handle reset
+
 function getFilteredData(resetFlag = false) {
-  // Reset selections if reset is true
+  
   if (resetFlag) selectedNeighborhoods.clear();
 
-  // Filter data
+  
   const reliabilitySetting = filters.reliability === "All Categories" ? "all" :
     filters.reliability;
 
@@ -711,7 +706,7 @@ function getFilteredData(resetFlag = false) {
   );
 }
 
-// Event handler function for clicking on neighborhoods
+
 function handleClick(neighborhood) {
   if (selectedNeighborhoods.has(neighborhood)) {
     selectedNeighborhoods.delete(neighborhood);
@@ -721,15 +716,15 @@ function handleClick(neighborhood) {
   renderDashboard();
 }
 
-// Function to render all visualizations
+
 function renderDashboard() {
-  // Recalculate filtered data based on current filters
+  
   const filteredData = getFilteredData();
 
-  // Update dropdown with filtered neighborhoods
+  
   populateNeighborhoodDropdown();
 
-  // Render all visualizations
+  
   renderSummaryStats();
   renderSelectedNeighborhoods();
   renderScatterPlot(filteredData);
@@ -739,18 +734,18 @@ function renderDashboard() {
   renderComparisonTable();
 }
 
-// Render summary statistics
+
 function renderSummaryStats() {
   const container = document.getElementById("summary-stats-container");
 
-  // Calculate the count of each reliability category
+  
   const categoryCounts = {
     High: neighborhoods.filter(n => n.reliability_category === "High").length,
     Medium: neighborhoods.filter(n => n.reliability_category === "Medium").length,
     Low: neighborhoods.filter(n => n.reliability_category === "Low").length
   };
 
-  // Create HTML for summary stats
+  
   container.innerHTML = `
     <div class="metric-cards">
       <div class="metric-card">
@@ -784,7 +779,7 @@ function renderSummaryStats() {
   `;
 }
 
-// Render selected neighborhoods list
+
 function renderSelectedNeighborhoods() {
   const container = selectedNeighborhoodsList;
 
@@ -796,7 +791,7 @@ function renderSelectedNeighborhoods() {
 
   noSelectionMessage.style.display = 'none';
 
-  // Create HTML for selected neighborhoods
+  
   container.innerHTML = '';
 
   selectedNeighborhoods.forEach(neighborhood => {
@@ -813,7 +808,7 @@ function renderSelectedNeighborhoods() {
     container.appendChild(item);
   });
 
-  // Add event listeners to remove buttons
+  
   container.querySelectorAll('.remove-btn').forEach(btn => {
     btn.addEventListener('click', () => {
       const neighborhood = btn.getAttribute('data-neighborhood');
@@ -823,17 +818,17 @@ function renderSelectedNeighborhoods() {
   });
 }
 
-// Render scatter plot
+
 function renderScatterPlot(filteredData) {
   const container = document.getElementById("scatter-plot-container");
   container.innerHTML = "";
 
-  // Set up dimensions
+  
   const margin = {top: 20, right: 20, bottom: 50, left: 60};
   const chartWidth = 500 - margin.left - margin.right;
   const chartHeight = 350 - margin.top - margin.bottom;
 
-  // Create SVG
+  
   const svg = d3.select(container)
     .append("svg")
       .attr("width", "100%")
@@ -843,7 +838,7 @@ function renderScatterPlot(filteredData) {
     .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Set up scales
+  
   const x = d3.scaleLinear()
     .domain([0, d3.max(filteredData, d => d.missing_data_rate) * 1.1])
     .range([0, chartWidth]);
@@ -852,7 +847,7 @@ function renderScatterPlot(filteredData) {
     .domain([0, d3.max(filteredData, d => d.reliability_score) * 1.1])
     .range([chartHeight, 0]);
 
-  // Add X axis
+  
   svg.append("g")
     .attr("transform", `translate(0,${chartHeight})`)
     .call(d3.axisBottom(x).tickFormat(d => `${d}%`))
@@ -860,14 +855,14 @@ function renderScatterPlot(filteredData) {
       .style("font-size", "10px")
       .style("fill", "white");
 
-  // Add Y axis
+  
   svg.append("g")
     .call(d3.axisLeft(y))
     .selectAll("text")
       .style("font-size", "10px")
       .style("fill", "white");
 
-  // X axis label
+  
   svg.append("text")
     .attr("text-anchor", "middle")
     .attr("x", chartWidth / 2)
@@ -875,14 +870,14 @@ function renderScatterPlot(filteredData) {
     .style("fill", "white")
     .text("Missing Data Rate (%)");
 
-  // Y axis label
+  
   svg.append("text")
     .attr("text-anchor", "middle")
     .attr("transform", `translate(${-margin.left + 15},${chartHeight / 2}) rotate(-90)`)
     .style("fill", "white")
     .text("Reliability Score");
 
-  // Add grid lines
+  
   svg.append("g")
     .attr("class", "grid")
     .call(d3.axisLeft(y)
@@ -902,7 +897,7 @@ function renderScatterPlot(filteredData) {
     .selectAll("line")
       .style("stroke", "rgba(255,255,255,0.1)");
 
-  // Add dots
+  
   svg.selectAll("circle")
     .data(filteredData)
     .enter()
@@ -918,7 +913,7 @@ function renderScatterPlot(filteredData) {
       .on("mouseover", function(event, d) {
         d3.select(this).attr("r", selectedNeighborhoods.has(d.neighborhood) ? 10 : 8);
 
-        // Create tooltip
+        
         const tooltip = d3.select("body").append("div")
           .attr("class", "tooltip")
           .style("left", (event.pageX + 10) + "px")
@@ -944,7 +939,7 @@ function renderScatterPlot(filteredData) {
         handleClick(d.neighborhood);
       });
 
-  // Add neighborhood labels for selected neighborhoods
+  
   svg.selectAll(".neighborhood-label")
     .data(filteredData.filter(d => selectedNeighborhoods.has(d.neighborhood)))
     .enter()
@@ -958,40 +953,40 @@ function renderScatterPlot(filteredData) {
       .style("font-weight", "bold");
 }
 
-// Render correlation heatmap
+
 function renderHeatmap() {
   const container = document.getElementById("heatmap-container");
   container.innerHTML = "";
 
-  // Calculate correlation matrix
+  
   const correlationMatrix = [];
   const metricNames = ["Missing Data", "Report Freq.", "Damage Var.", "Reliability"];
 
-  // Calculate correlations between each pair of metrics
+  
   for (let i = 0; i < metrics.length; i++) {
     correlationMatrix[i] = [];
     for (let j = 0; j < metrics.length; j++) {
       if (i === j) {
-        correlationMatrix[i][j] = 1; // Diagonal is always 1 (perfect correlation with self)
+        correlationMatrix[i][j] = 1; 
       } else {
         const metric1 = metrics[i];
         const metric2 = metrics[j];
         const values1 = neighborhoods.map(d => d[metric1]);
         const values2 = neighborhoods.map(d => d[metric2]);
 
-        // Calculate Pearson correlation
+        
         const correlation = calculateCorrelation(values1, values2);
         correlationMatrix[i][j] = correlation;
       }
     }
   }
 
-  // Set up dimensions
+  
   const margin = {top: 30, right: 50, bottom: 50, left: 70};
   const size = 240;
   const cellSize = size / metrics.length;
 
-  // Create SVG
+  
   const svg = d3.select(container)
     .append("svg")
       .attr("width", "100%")
@@ -1001,12 +996,12 @@ function renderHeatmap() {
     .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Create color scale
+  
   const colorScale = d3.scaleLinear()
     .domain([-1, 0, 1])
     .range([colors.secondary, "#FFFFFF", colors.primary]);
 
-  // Create cells
+  
   svg.selectAll()
     .data(correlationMatrix.flatMap((row, i) => row.map((value, j) => ({i, j, value}))))
     .enter()
@@ -1019,7 +1014,7 @@ function renderHeatmap() {
       .attr("stroke", "white")
       .attr("stroke-width", 1);
 
-  // Add text to cells
+  
   svg.selectAll()
     .data(correlationMatrix.flatMap((row, i) => row.map((value, j) => ({i, j, value}))))
     .enter()
@@ -1031,7 +1026,7 @@ function renderHeatmap() {
       .style("fill", d => Math.abs(d.value) > 0.6 ? "white" : "black")
       .text(d => d.value.toFixed(2));
 
-  // Add row labels
+  
   svg.selectAll(".row-label")
     .data(metricNames)
     .enter()
@@ -1044,7 +1039,7 @@ function renderHeatmap() {
       .style("fill", "white")
       .text(d => d);
 
-  // Add column labels
+  
   svg.selectAll(".col-label")
     .data(metricNames)
     .enter()
@@ -1058,7 +1053,7 @@ function renderHeatmap() {
       .style("transform", "rotate(-45deg)")
       .text(d => d);
 
-  // Add title
+  
   svg.append("text")
     .attr("x", size / 2)
     .attr("y", -15)
@@ -1067,7 +1062,7 @@ function renderHeatmap() {
     .style("fill", "white")
     .text("Correlation between Metrics");
 
-  // Add color scale legend
+  
   const legendWidth = 200;
   const legendHeight = 10;
 
@@ -1078,7 +1073,7 @@ function renderHeatmap() {
   const legend = svg.append("g")
     .attr("transform", `translate(${(size - legendWidth) / 2}, ${size + 20})`);
 
-  // Create gradient
+  
   const defs = svg.append("defs");
   const gradient = defs.append("linearGradient")
     .attr("id", "correlation-gradient")
@@ -1099,13 +1094,13 @@ function renderHeatmap() {
     .attr("offset", "100%")
     .attr("stop-color", colors.primary);
 
-  // Add gradient rectangle
+  
   legend.append("rect")
     .attr("width", legendWidth)
     .attr("height", legendHeight)
     .style("fill", "url(#correlation-gradient)");
 
-  // Add legend axis
+  
   const legendAxis = d3.axisBottom(legendX)
     .tickValues([-1, -0.5, 0, 0.5, 1])
     .tickFormat(d3.format(".1f"));
@@ -1118,7 +1113,7 @@ function renderHeatmap() {
       .style("fill", "white");
 }
 
-// Function to calculate Pearson correlation
+
 function calculateCorrelation(x, y) {
   const n = x.length;
   let sumX = 0, sumY = 0, sumXY = 0, sumX2 = 0, sumY2 = 0;
@@ -1138,22 +1133,21 @@ function calculateCorrelation(x, y) {
   return numerator / denominator;
 }
 
-// Render the metric analysis charts (bar charts)
-function renderMetricCharts(filteredData) {
-  console.log("Rendering metric charts with filtered data:", filteredData);
 
-  // Missing Data Rate Chart
+function renderMetricCharts(filteredData) {
+
+  
   const missingDataContainer = document.getElementById("missing-data-chart");
-  missingDataContainer.innerHTML = ""; // Clear previous content
+  missingDataContainer.innerHTML = ""; 
 
   const sortedMissingData = [...filteredData].sort((a, b) => b.missing_data_rate - a.missing_data_rate);
 
-  // Set up dimensions
+  
   const margin = {top: 40, right: 30, bottom: 90, left: 60};
   const chartWidth = width - margin.left - margin.right;
   const chartHeight = 300 - margin.top - margin.bottom;
 
-  // Create SVG for missing data chart
+  
   const missingDataSvg = d3.select(missingDataContainer)
     .append("svg")
       .attr("width", "100%")
@@ -1163,7 +1157,7 @@ function renderMetricCharts(filteredData) {
     .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Set up scales
+  
   const x = d3.scaleBand()
     .domain(sortedMissingData.map(d => d.neighborhood))
     .range([0, chartWidth])
@@ -1173,7 +1167,7 @@ function renderMetricCharts(filteredData) {
     .domain([0, d3.max(sortedMissingData, d => d.missing_data_rate) * 1.1])
     .range([chartHeight, 0]);
 
-  // Add title
+  
   missingDataSvg.append("text")
     .attr("x", chartWidth / 2)
     .attr("y", -15)
@@ -1182,7 +1176,7 @@ function renderMetricCharts(filteredData) {
     .style("fill", "white")
     .text("Missing Data Rate by Neighborhood");
 
-  // Add X axis
+  
   missingDataSvg.append("g")
     .attr("transform", `translate(0,${chartHeight})`)
     .call(d3.axisBottom(x))
@@ -1191,13 +1185,13 @@ function renderMetricCharts(filteredData) {
       .style("text-anchor", "end")
       .style("fill", "white");
 
-  // Add Y axis
+  
   missingDataSvg.append("g")
     .call(d3.axisLeft(y).tickFormat(d => `${d}%`))
     .selectAll("text")
       .style("fill", "white");
 
-  // Add horizontal grid lines
+  
   missingDataSvg.append("g")
     .attr("class", "grid")
     .call(d3.axisLeft(y)
@@ -1207,7 +1201,7 @@ function renderMetricCharts(filteredData) {
     .selectAll("line")
       .style("stroke", "rgba(255,255,255,0.1)");
 
-  // Add bars
+  
   missingDataSvg.selectAll("rect")
     .data(sortedMissingData)
     .enter()
@@ -1223,7 +1217,7 @@ function renderMetricCharts(filteredData) {
       .on("mouseover", function(event, d) {
         d3.select(this).attr("opacity", 0.8);
 
-        // Create tooltip
+        
         const tooltip = d3.select("body").append("div")
           .attr("class", "tooltip")
           .style("left", (event.pageX + 10) + "px")
@@ -1249,7 +1243,7 @@ function renderMetricCharts(filteredData) {
         handleClick(d.neighborhood);
       });
 
-  // Add threshold line
+  
   missingDataSvg.append("line")
     .attr("x1", 0)
     .attr("y1", y(filters.missingData))
@@ -1259,7 +1253,7 @@ function renderMetricCharts(filteredData) {
     .attr("stroke-width", 2)
     .attr("stroke-dasharray", "4,4");
 
-  // Add threshold label
+  
   missingDataSvg.append("text")
     .attr("x", chartWidth - 10)
     .attr("y", y(filters.missingData) - 5)
@@ -1268,13 +1262,13 @@ function renderMetricCharts(filteredData) {
     .style("fill", colors.secondary)
     .text(`Threshold: ${filters.missingData}%`);
 
-  // Reliability Score Chart
+  
   const reliabilityContainer = document.getElementById("reliability-score-chart");
-  reliabilityContainer.innerHTML = ""; // Clear previous content
+  reliabilityContainer.innerHTML = ""; 
 
   const sortedReliabilityData = [...filteredData].sort((a, b) => b.reliability_score - a.reliability_score);
 
-  // Create SVG for reliability chart
+  
   const reliabilitySvg = d3.select(reliabilityContainer)
     .append("svg")
       .attr("width", "100%")
@@ -1284,7 +1278,7 @@ function renderMetricCharts(filteredData) {
     .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Set up scales
+  
   const xR = d3.scaleBand()
     .domain(sortedReliabilityData.map(d => d.neighborhood))
     .range([0, chartWidth])
@@ -1294,7 +1288,7 @@ function renderMetricCharts(filteredData) {
     .domain([0, d3.max(sortedReliabilityData, d => d.reliability_score) * 1.1])
     .range([chartHeight, 0]);
 
-  // Add title
+  
   reliabilitySvg.append("text")
     .attr("x", chartWidth / 2)
     .attr("y", -15)
@@ -1303,7 +1297,7 @@ function renderMetricCharts(filteredData) {
     .style("fill", "white")
     .text("Reliability Score by Neighborhood");
 
-  // Add X axis
+  
   reliabilitySvg.append("g")
     .attr("transform", `translate(0,${chartHeight})`)
     .call(d3.axisBottom(xR))
@@ -1312,13 +1306,13 @@ function renderMetricCharts(filteredData) {
       .style("text-anchor", "end")
       .style("fill", "white");
 
-  // Add Y axis
+  
   reliabilitySvg.append("g")
     .call(d3.axisLeft(yR))
     .selectAll("text")
       .style("fill", "white");
 
-  // Add horizontal grid lines
+  
   reliabilitySvg.append("g")
     .attr("class", "grid")
     .call(d3.axisLeft(yR)
@@ -1328,7 +1322,7 @@ function renderMetricCharts(filteredData) {
     .selectAll("line")
       .style("stroke", "rgba(255,255,255,0.1)");
 
-  // Add bars
+  
   reliabilitySvg.selectAll("rect")
     .data(sortedReliabilityData)
     .enter()
@@ -1344,7 +1338,7 @@ function renderMetricCharts(filteredData) {
       .on("mouseover", function(event, d) {
         d3.select(this).attr("opacity", 0.8);
 
-        // Create tooltip
+        
         const tooltip = d3.select("body").append("div")
           .attr("class", "tooltip")
           .style("left", (event.pageX + 10) + "px")
@@ -1370,7 +1364,7 @@ function renderMetricCharts(filteredData) {
         handleClick(d.neighborhood);
       });
 
-  // Add threshold lines for quartiles
+  
   reliabilitySvg.append("line")
     .attr("x1", 0)
     .attr("y1", yR(stats.reliability_score.q1))
@@ -1389,7 +1383,7 @@ function renderMetricCharts(filteredData) {
     .attr("stroke-width", 1)
     .attr("stroke-dasharray", "4,4");
 
-  // Add quartile labels
+  
   reliabilitySvg.append("text")
     .attr("x", chartWidth - 10)
     .attr("y", yR(stats.reliability_score.q3) - 5)
@@ -1406,13 +1400,13 @@ function renderMetricCharts(filteredData) {
     .style("fill", colors.reliability.low)
     .text(`Q1: ${stats.reliability_score.q1.toFixed(2)}`);
 
-  // Damage Variability Chart
+  
   const damageContainer = document.getElementById("damage-variability-chart");
-  damageContainer.innerHTML = ""; // Clear previous content
+  damageContainer.innerHTML = ""; 
 
   const sortedDamageData = [...filteredData].sort((a, b) => b.damage_variability - a.damage_variability);
 
-  // Create SVG for damage variability chart
+  
   const damageSvg = d3.select(damageContainer)
     .append("svg")
       .attr("width", "100%")
@@ -1422,7 +1416,7 @@ function renderMetricCharts(filteredData) {
     .append("g")
       .attr("transform", `translate(${margin.left},${margin.top})`);
 
-  // Set up scales
+  
   const xD = d3.scaleBand()
     .domain(sortedDamageData.map(d => d.neighborhood))
     .range([0, chartWidth])
@@ -1432,7 +1426,7 @@ function renderMetricCharts(filteredData) {
     .domain([0, d3.max(sortedDamageData, d => d.damage_variability) * 1.1])
     .range([chartHeight, 0]);
 
-  // Add title
+  
   damageSvg.append("text")
     .attr("x", chartWidth / 2)
     .attr("y", -15)
@@ -1441,7 +1435,7 @@ function renderMetricCharts(filteredData) {
     .style("fill", "white")
     .text("Damage Variability by Neighborhood");
 
-  // Add X axis
+  
   damageSvg.append("g")
     .attr("transform", `translate(0,${chartHeight})`)
     .call(d3.axisBottom(xD))
@@ -1450,13 +1444,13 @@ function renderMetricCharts(filteredData) {
       .style("text-anchor", "end")
       .style("fill", "white");
 
-  // Add Y axis
+  
   damageSvg.append("g")
     .call(d3.axisLeft(yD))
     .selectAll("text")
       .style("fill", "white");
 
-  // Add horizontal grid lines
+  
   damageSvg.append("g")
     .attr("class", "grid")
     .call(d3.axisLeft(yD)
@@ -1466,7 +1460,7 @@ function renderMetricCharts(filteredData) {
     .selectAll("line")
       .style("stroke", "rgba(255,255,255,0.1)");
 
-  // Add bars
+  
   damageSvg.selectAll("rect")
     .data(sortedDamageData)
     .enter()
@@ -1482,7 +1476,7 @@ function renderMetricCharts(filteredData) {
       .on("mouseover", function(event, d) {
         d3.select(this).attr("opacity", 0.8);
 
-        // Create tooltip
+        
         const tooltip = d3.select("body").append("div")
           .attr("class", "tooltip")
           .style("left", (event.pageX + 10) + "px")
@@ -1509,7 +1503,7 @@ function renderMetricCharts(filteredData) {
       });
 }
 
-// Render radar chart for comparing selected neighborhoods
+
 function renderRadarChart() {
   const container = document.getElementById("radar-chart-container");
   container.innerHTML = "";
@@ -1523,12 +1517,12 @@ function renderRadarChart() {
     return;
   }
 
-  // Get selected neighborhoods data
+  
   const selectedData = neighborhoods.filter(n =>
     selectedNeighborhoods.has(n.neighborhood)
   );
 
-  // Normalize data for radar chart
+  
   const chartData = selectedData.map(n => ({
     neighborhood: n.neighborhood,
     color: n.reliability_color,
@@ -1540,24 +1534,24 @@ function renderRadarChart() {
     ]
   }));
 
-  // Set up dimensions
+  
   const size = 500;
-  const margin = { top: 70, right: 50, bottom: 50, left: 50 }; // Increased top margin
+  const margin = { top: 70, right: 50, bottom: 50, left: 50 }; 
   const chartSize = size - margin.top - margin.bottom;
-  const center = { x: chartSize / 2 + margin.left, y: chartSize / 2 + margin.top + 10 }; // Shifted center down
+  const center = { x: chartSize / 2 + margin.left, y: chartSize / 2 + margin.top + 10 }; 
   const radius = chartSize / 2;
 
-  // Create SVG - make sure it fills the container
+  
   container.style.width = "100%";
 
   const svg = d3.select(container)
     .append("svg")
       .attr("width", "100%")
       .attr("height", 500)
-      .attr("viewBox", `0 0 ${size + 50} ${size + 50}`) // Added padding to viewBox
+      .attr("viewBox", `0 0 ${size + 50} ${size + 50}`) 
       .attr("preserveAspectRatio", "xMidYMid meet");
 
-  // Scales
+  
   const angleScale = d3.scaleLinear()
     .domain([0, 4])
     .range([0, 2 * Math.PI]);
@@ -1566,13 +1560,13 @@ function renderRadarChart() {
     .domain([0, 10])
     .range([0, radius]);
 
-  // Draw radar grid
-  const levels = 5; // 5 levels for the grid
+  
+  const levels = 5; 
 
   for (let level = 1; level <= levels; level++) {
     const r = radius * level / levels;
 
-    // Draw level circles
+    
     svg.append("circle")
       .attr("cx", center.x)
       .attr("cy", center.y)
@@ -1580,19 +1574,19 @@ function renderRadarChart() {
       .attr("fill", "none")
       .attr("stroke", "rgba(255,255,255,0.1)");
 
-    // Add level labels (only for even levels)
+    
     if (level % 2 === 0) {
       svg.append("text")
         .attr("x", center.x)
         .attr("y", center.y - r - 5)
         .attr("text-anchor", "middle")
-        .style("font-size", "11px") // Increased font size
-        .style("fill", "rgba(255,255,255,0.7)") // Slightly more visible
+        .style("font-size", "11px") 
+        .style("fill", "rgba(255,255,255,0.7)") 
         .text((level * 2).toString());
     }
   }
 
-  // Draw radar axes
+  
   for (let i = 0; i < 4; i++) {
     const angle = angleScale(i) - Math.PI / 2;
     const lineX = center.x + radius * Math.cos(angle);
@@ -1605,27 +1599,27 @@ function renderRadarChart() {
       .attr("y2", lineY)
       .attr("stroke", "rgba(255,255,255,0.3)");
 
-    // Add axis labels with better positioning
-    const labelRadius = radius + 40; // Further increased label distance
+    
+    const labelRadius = radius + 40; 
     const metric = chartData[0].metrics[i];
 
-    // Custom positioning based on angle
+    
     let xOffset = 0;
     let yOffset = 0;
     let textAnchor = "middle";
     let dominantBaseline = "middle";
 
-    // Adjust position based on quadrant to prevent overlap
-    if (angle === -Math.PI/2) { // Top
-      yOffset = -20; // More space at top
+    
+    if (angle === -Math.PI/2) { 
+      yOffset = -20; 
       dominantBaseline = "text-after-edge";
-    } else if (angle === Math.PI/2) { // Bottom
+    } else if (angle === Math.PI/2) { 
       yOffset = 15;
       dominantBaseline = "hanging";
-    } else if (angle === 0) { // Right
+    } else if (angle === 0) { 
       xOffset = 15;
       textAnchor = "start";
-    } else if (angle === Math.PI) { // Left
+    } else if (angle === Math.PI) { 
       xOffset = -15;
       textAnchor = "end";
     }
@@ -1635,13 +1629,13 @@ function renderRadarChart() {
       .attr("y", center.y + labelRadius * Math.sin(angle) + yOffset)
       .attr("text-anchor", textAnchor)
       .attr("dominant-baseline", dominantBaseline)
-      .style("font-size", "14px") // Increased font size
+      .style("font-size", "14px") 
       .style("font-weight", "bold")
       .style("fill", "white")
       .text(metric.label.replace(" (%)", "").replace(" (min)", ""));
   }
 
-  // Draw radar paths
+  
   const lineGenerator = d3.lineRadial()
     .radius(d => radiusScale(d.value))
     .angle((d, i) => angleScale(i) - Math.PI / 2)
@@ -1654,7 +1648,7 @@ function renderRadarChart() {
       .attr("class", "radar-group")
       .attr("transform", `translate(${center.x}, ${center.y})`);
 
-  // Draw filled areas
+  
   radarGroups.append("path")
     .attr("d", d => lineGenerator(d.metrics))
     .attr("fill", d => d.color)
@@ -1662,7 +1656,7 @@ function renderRadarChart() {
     .attr("stroke", d => d.color)
     .attr("stroke-width", 2);
 
-  // Draw points
+  
   chartData.forEach(item => {
     const pointGroup = svg.append("g")
       .attr("transform", `translate(${center.x}, ${center.y})`);
@@ -1676,14 +1670,14 @@ function renderRadarChart() {
       pointGroup.append("circle")
         .attr("cx", x)
         .attr("cy", y)
-        .attr("r", 6) // Larger data points
+        .attr("r", 6) 
         .attr("fill", item.color)
         .attr("stroke", "white")
         .attr("stroke-width", 1.5);
     });
   });
 
-  // Add legend - moved lower
+  
   const legend = svg.append("g")
     .attr("class", "legend")
     .attr("transform", `translate(${center.x}, ${size - 15})`);
@@ -1695,7 +1689,7 @@ function renderRadarChart() {
     legendItem.append("circle")
       .attr("cx", 0)
       .attr("cy", 0)
-      .attr("r", 7) // Larger circles
+      .attr("r", 7) 
       .attr("fill", item.color)
       .attr("stroke", "white")
       .attr("stroke-width", 1);
@@ -1709,10 +1703,10 @@ function renderRadarChart() {
       .text(item.neighborhood);
   });
 
-  // No title needed here as we already have a title in the container
+  
 }
 
-// Render comparison table
+
 function renderComparisonTable() {
   const container = document.getElementById("comparison-table");
 
@@ -1725,12 +1719,12 @@ function renderComparisonTable() {
     return;
   }
 
-  // Get selected neighborhoods data
+  
   const selectedData = neighborhoods.filter(n =>
     selectedNeighborhoods.has(n.neighborhood)
   );
 
-  // Create HTML table - full width and centered
+  
   let html = `
     <div style="width: 100%; overflow-x: auto; display: flex; justify-content: center;">
       <table class="comparison-table" style="width: 100%; max-width: 100%;">
@@ -1747,7 +1741,7 @@ function renderComparisonTable() {
         <tbody>
   `;
 
-  // Add rows for each neighborhood
+  
   selectedData.forEach(n => {
     html += `
       <tr>
@@ -1792,11 +1786,11 @@ function renderComparisonTable() {
   container.innerHTML = html;
 }
 
-// Initial render of the dashboard
+
 renderDashboard();
 ```
 
 
 ```js
-// All visualizations render automatically
+
 ```

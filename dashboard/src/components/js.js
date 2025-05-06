@@ -1,8 +1,7 @@
 import * as Plot from "https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/+esm";
 import { dashboardColors } from "./dashboard-styles.js";
 
-
-const csvFilePath = "/data/daily_mean_by_location.csv"; 
+const csvFilePath = "/data/daily_mean_by_location.csv";
 let selectedLocations = new Set();
 
 export function loadScript(src) {
@@ -108,14 +107,11 @@ export async function loadCommonLibraries() {
   
   await loadScript('https://cdn.jsdelivr.net/npm/chart.js@4.3.0/dist/chart.umd.min.js');
   
-  // Font Awesome for icons
   await loadStylesheet('https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css');
   
-  // Google Fonts - Inter
   await loadStylesheet('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;800&display=swap');
 }
 
-// Line chart specific functionality retained from original file
 async function loadCSV() {
   const response = await fetch(csvFilePath);
   const text = await response.text();

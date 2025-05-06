@@ -126,17 +126,8 @@ import {
   getMetricLabel 
 } from "/components/js.js";
 
-/**
- * Dashboard initialization
- * 
- * This is the main entry point for the comprehensive dashboard that combines
- * all visualizations with shared filters and cross-visualization interactivity.
- */
-
-// Apply standardized styles
 applyDashboardStyles();
 
-// Initialize the dashboard when DOM is fully loaded
 window.addEventListener('load', initDashboard);
 
 async function initDashboard() {
@@ -151,7 +142,6 @@ async function initDashboard() {
     highlightsContainer.appendChild(createHighlightsBox());
   }
   
-  // Use standardized library loading
   await loadCommonLibraries();
   
   const [geoData, radarData, reportData] = await Promise.all([
@@ -718,8 +708,6 @@ function updateStatistics(radarData, reportData) {
   }
 }
 
-// Removed loadScript, loadStylesheet, and getMetricLabel functions
-// These are now imported from standardized js.js
 ```
 
 <style>

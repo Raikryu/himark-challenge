@@ -20,9 +20,6 @@ Promise.all([
   const parsethedate = d3.timeParse("%d/%m/%Y");
   loadedData.forEach(d => {
     d.date = parsethedate(d.date);
-    if (!d.date) {
-      console.error("err", d);
-    }
   });
 
   const startDate = parsethedate("06/04/2020");
@@ -34,25 +31,25 @@ Promise.all([
   const uniqueLocations = [...locationSet].sort((a, b) => a - b);
 
   const colorMap = {
-    1: "#FF5733", // Palace Hills - bright red-orange
-    2: "#33FF57", // Northwest - bright green
-    3: "#3357FF", // Old Town - bright blue
-    4: "#FF33F5", // Safe Town - bright pink
-    5: "#F5FF33", // Southwest - bright yellow
-    6: "#33FFF5", // Downtown - bright cyan
-    7: "#C70039", // Wilson Forest - dark red
-    8: "#8833FF", // Scenic Vista - bright purple
-    9: "#FF8833", // Broadview - bright orange
-    10: "#33FFBD", // Chapparal - bright mint
-    11: "#00008B", // Terrapin Springs - dark blue
-    12: "#FF3355", // Pepper Mill - bright red
-    13: "#33FF99", // Cheddarford - bright seafoam
-    14: "#9933FF", // Easton - bright violet
-    15: "#FFBD33", // Weston - bright gold
-    16: "#33CCFF", // Southton - bright sky blue
-    17: "#FF33BD", // Oak Willow - bright magenta
-    18: "#71FF33", // East Parton - bright lime
-    19: "#FF5599"  // West Parton - bright rose
+    1: "#FF5733",
+    2: "#33FF57",
+    3: "#3357FF",
+    4: "#FF33F5",
+    5: "#F5FF33",
+    6: "#33FFF5",
+    7: "#C70039",
+    8: "#8833FF",
+    9: "#FF8833",
+    10: "#33FFBD",
+    11: "#00008B",
+    12: "#FF3355",
+    13: "#33FF99",
+    14: "#9933FF",
+    15: "#FFBD33",
+    16: "#33CCFF",
+    17: "#FF33BD",
+    18: "#71FF33",
+    19: "#FF5599"
   };
 
   const getNeighborhoodName = (id) => {

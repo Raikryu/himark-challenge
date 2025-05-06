@@ -3,7 +3,6 @@
 <head>
   <meta charset="UTF-8">
   <title>D3 Treemap Example</title>
-  <!-- Load D3 from a CDN (v7 used here) -->
   <script src="https://d3js.org/d3.v7.min.js"></script>
   <style>
     body {
@@ -18,51 +17,42 @@
     text {
       font-size: 12px;
       fill: #fff;
-      pointer-events: none; /* so text doesn't block mouse events on the rect */
+      pointer-events: none;
     }
   </style>
 </head>
 <body>
 
 <script>
-  // Set the dimensions for the treemap
   const width = 800;
   const height = 600;
 
-  // Create an SVG element
   const svg = d3.select("body")
     .append("svg")
     .attr("width", width)
     .attr("height", height);
 
-  // Load the JSON data (make sure treemap.json is in the same folder)
   d3.json("treemap.json").then(data => {
     
-    // Convert the data into a hierarchical structure
     const root = d3.hierarchy(data)
-      .sum(d => d.value); // use the 'value' property to determine rectangle size
+      .sum(d => d.value);
 
-    // Create a treemap layout with padding
     d3.treemap()
       .size([width, height])
       .padding(1)(root);
 
-    // Define a color scale (you can customize or use other D3 color schemes)
     const color = d3.scaleOrdinal(d3.schemeCategory10);
 
-    // Each leaf node in the hierarchy is one rectangle
     const leaves = svg.selectAll("g")
       .data(root.leaves())
       .enter().append("g")
       .attr("transform", d => `translate(${d.x0}, ${d.y0})`);
 
-    // Draw the rectangles
     leaves.append("rect")
       .attr("width", d => d.x1 - d.x0)
       .attr("height", d => d.y1 - d.y0)
       .attr("fill", d => color(d.parent.data.name));
 
-    // Add text labels (location name + damage value)
     leaves.append("text")
       .attr("x", 5)
       .attr("y", 15)

@@ -65,27 +65,22 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
   async function loadExternalLibraries() {
     const head = document.head;
 
-    // Add Leaflet CSS
     const leafletCSS = document.createElement('link');
     leafletCSS.rel = 'stylesheet';
     leafletCSS.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
     head.appendChild(leafletCSS);
 
-    // Add Leaflet JS
     const leafletJS = document.createElement('script');
     leafletJS.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
     head.appendChild(leafletJS);
     
-    // Also load common libraries
     await loadCommonLibraries();
   }
 
-  // Initialize the heatmap and visualization components
   async function initHeatmap() {
     await loadExternalLibraries();
     
     if (typeof Chart === 'undefined') {
-      console.error('Chart.js not loaded properly.');
       const errorMsg = document.createElement('div');
       errorMsg.className = 'error-message';
       errorMsg.textContent = 'Failed to load visualization libraries.';
@@ -96,7 +91,6 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
     try {
   let map;
   
-  // Ensure Leaflet is loaded
   if (typeof L !== 'undefined') {
     map = L.map('map', {
       crs: L.CRS.Simple,
@@ -105,7 +99,6 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
       zoom: 0
     });
   } else {
-    console.error("Leaflet not loaded properly");
     return;
   }
 
@@ -146,14 +139,11 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
     }
   };
 
-  // Track the current selected district
   let selectedDistrict = null;
   let geoData = null;
   let radarData = null;
   let layerGroup = null;
   let metricsChart = null;
-
-  // Load GeoJSON and radar data
   Promise.all([
     FileAttachment("st_himark_color_extracted_pixels_with_update2.geojson").json(),
     FileAttachment("radar_chart_data.json").json()
@@ -161,11 +151,8 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
     geoData = geoJson;
     radarData = radarJson;
 
-    // Initialize with default metric
     updateMap(metricSelect.value);
     createMapLegend(metricSelect.value);
-
-    // Setup event listeners
     metricSelect.addEventListener('change', function() {
       updateMap(this.value);
       createMapLegend(this.value);
@@ -186,25 +173,19 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
       }
     });
   }).catch(function(err) {
-    console.error("Error loading files:", err);
   });
 
-  // Function to update the map based on selected metric
   function updateMap(metric) {
-    // Clear existing layers
     if (layerGroup) {
       map.removeLayer(layerGroup);
     }
 
     layerGroup = L.layerGroup().addTo(map);
 
-    // Build a dictionary with damage scores by region
     const damageMap = {};
     radarData.forEach(function(d) {
       damageMap[d.location] = d[metric] || d.damage_score;
     });
-
-    // Merge damage score into each GeoJSON feature
     geoData.features.forEach(function(feature) {
       const regionName = feature.properties.name;
       if (damageMap.hasOwnProperty(regionName)) {
@@ -212,31 +193,25 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
       }
     });
 
-    // Calculate min and max values for color scale
     const values = geoData.features.map(f => f.properties[metric]).filter(v => v !== undefined);
     const minValue = Math.min(...values);
     const maxValue = Math.max(...values);
-
-    // Function to get color based on damage value
     function getColor(value) {
       return getDamageColor(value);
     }
 
-    // Function to convert pixel coordinates to Leaflet latlngs
     function pixelPolygonToLatLngs(coords) {
       return coords.map(function(pt) {
         return [height - pt[1], pt[0]];
       });
     }
 
-    // Create polygons for each district
     geoData.features.forEach(function(feature) {
       const value = feature.properties[metric];
       const polygons = feature.geometry.coordinates;
       const ring = polygons[0];
       const latLngRing = pixelPolygonToLatLngs(ring);
 
-      // Create polygon with styling
       const poly = L.polygon(latLngRing, {
         color: "white",
         weight: 2,
@@ -244,32 +219,25 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
         fillOpacity: 0.7
       }).addTo(layerGroup);
 
-      // Add tooltip and interactivity
       poly.bindTooltip(`
         <strong>${feature.properties.name}</strong><br>
         ${metrics[metric].displayName}: ${value ? value.toFixed(2) : 'N/A'}
       `);
 
-      // Add click event to show district details
       poly.on('click', function() {
         selectedDistrict = feature.properties.name;
 
-        // Update info panel with district details
         updateDistrictInfo(feature.properties.name);
-
-        // Update comparison chart if visible
         if (metricsComparisonDiv.style.display !== 'none') {
           createMetricsChart(feature.properties.name);
         }
 
-        // Highlight selected district
         layerGroup.eachLayer(function(layer) {
           layer.setStyle({ weight: 2 });
         });
         this.setStyle({ weight: 4, color: dashboardColors.light });
       });
 
-      // Hover styling
       poly.on('mouseover', function() {
         if (feature.properties.name !== selectedDistrict) {
           this.setStyle({ weight: 3, fillOpacity: 0.9 });
@@ -283,7 +251,6 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
       });
     });
 
-    // Create info control
     const info = L.control({ position: 'topright' });
     info.onAdd = function() {
       this._div = L.DomUtil.create('div', 'info');
@@ -300,23 +267,17 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
     info.addTo(map);
   }
 
-  // Create a legend for the map
   function createMapLegend(metric) {
-    // Clear existing legend
     mapLegendDiv.innerHTML = '';
 
-    // Get values for the selected metric
     const values = radarData.map(d => d[metric] || d.damage_score);
     const min = Math.min(...values);
     const max = Math.max(...values);
-
-    // Create legend title
     const legendTitle = document.createElement('div');
     legendTitle.className = 'legend-title';
     legendTitle.textContent = `${metrics[metric].displayName} Scale`;
     mapLegendDiv.appendChild(legendTitle);
 
-    // Create color scale with 5 intervals
     const steps = 5;
     const interval = (max - min) / steps;
 
@@ -339,9 +300,7 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
     }
   }
 
-  // Update district information panel
   function updateDistrictInfo(districtName) {
-    // Find district data
     const district = radarData.find(d => d.location === districtName);
 
     if (!district) {
@@ -349,7 +308,6 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
       return;
     }
 
-    // Create HTML content
     let html = `
       <h3>${districtName} District</h3>
       <div class="district-metrics">
@@ -361,9 +319,8 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
           </tr>
     `;
 
-    // Add row for each metric
     Object.keys(metrics).forEach(metric => {
-      if (metric === 'damage_score') return; // Skip overall score from table
+      if (metric === 'damage_score') return;
 
       const value = district[metric];
       const severity = getSeverityLabel(value);
@@ -395,7 +352,6 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
     districtInfoDiv.innerHTML = html;
   }
 
-  // Create comparison chart for a specific district
   function createMetricsChart(districtName) {
     const district = radarData.find(d => d.location === districtName);
 
@@ -404,27 +360,24 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
       return;
     }
 
-    // Prepare data for chart
     const labels = [];
     const values = [];
     const backgroundColors = [];
 
     Object.keys(metrics).forEach(metric => {
-      if (metric === 'damage_score') return; // Skip overall score
+      if (metric === 'damage_score') return;
 
       labels.push(metrics[metric].displayName);
       values.push(district[metric]);
       backgroundColors.push(metrics[metric].color);
     });
 
-    // Get chart canvas
     const ctx = document.createElement('canvas');
     ctx.height = 400;
     const container = document.getElementById('metrics-chart');
     container.innerHTML = '';
     container.appendChild(ctx);
 
-    // Create chart
     if (metricsChart) {
       metricsChart.destroy();
     }
@@ -466,14 +419,10 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
     });
   }
 
-  // Create average metrics chart for all districts
   function createAverageMetricsChart() {
-    // Prepare data for chart
     const metricKeys = Object.keys(metrics).filter(m => m !== 'damage_score');
     const labels = metricKeys.map(m => metrics[m].displayName);
     const datasets = [];
-
-    // Group data by district
     radarData.forEach(district => {
       const data = metricKeys.map(metric => district[metric]);
 
@@ -486,14 +435,12 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
       });
     });
 
-    // Get chart canvas
     const ctx = document.createElement('canvas');
     ctx.height = 400;
     const container = document.getElementById('metrics-chart');
     container.innerHTML = '';
     container.appendChild(ctx);
 
-    // Create chart
     if (metricsChart) {
       metricsChart.destroy();
     }
@@ -528,7 +475,6 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
     });
   }
 
-  // Helper function to get severity label
   function getSeverityLabel(value) {
     if (value <= 2) return 'Minimal';
     if (value <= 4) return 'Minor';
@@ -537,7 +483,6 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
     return 'Critical';
   }
 
-  // Helper function to get random color for charts
   function getRandomColor() {
     const letters = '0123456789ABCDEF';
     let color = '#';
@@ -547,7 +492,6 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
     return color;
   }
   
-  // Subscribe to dashboard state changes
   if (typeof dashboardState !== 'undefined') {
     dashboardState.subscribe('filters', (filters) => {
       if (filters.metric) {
@@ -561,9 +505,7 @@ import { loadCommonLibraries, getMetricLabel } from "./components/js.js";
     });
   }
     
-  // Error handling
   } catch (error) {
-    console.error("Error initializing heatmap:", error);
     const errorMsg = document.createElement('div');
     errorMsg.className = 'error-message';
     errorMsg.textContent = 'An error occurred while initializing the visualization.';

@@ -131,7 +131,6 @@ import { applyDashboardStyles } from "./components/dashboard-styles.js";
     </div>
   `;
   }).catch(error => {
-    console.error("Error loading data:", error);
     document.getElementById('stats-container').innerHTML = `
       <div class="error-message">Error loading statistics: ${error.message}</div>
     `;
