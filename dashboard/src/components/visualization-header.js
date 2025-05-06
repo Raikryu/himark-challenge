@@ -9,20 +9,17 @@ export function createVisualizationHeader(options) {
     containerId = ""
   } = options;
 
-  // Create container
   const header = document.createElement("div");
   header.className = "visualization-header";
   if (containerId) {
     header.id = containerId;
   }
 
-  // Create title section
   const titleElement = document.createElement("div");
   titleElement.className = "visualization-title";
   titleElement.innerHTML = `<i class="fas fa-${icon}"></i> ${title}`;
   header.appendChild(titleElement);
 
-  // Add description if provided
   if (description) {
     const descriptionElement = document.createElement("div");
     descriptionElement.className = "visualization-description";
@@ -30,7 +27,6 @@ export function createVisualizationHeader(options) {
     header.appendChild(descriptionElement);
   }
 
-  // Add controls container if requested
   if (includeControls) {
     const controlsContainer = document.createElement("div");
     controlsContainer.className = "visualization-controls";
@@ -38,7 +34,6 @@ export function createVisualizationHeader(options) {
     header.appendChild(controlsContainer);
   }
 
-  // Add styles
   const style = document.createElement("style");
   style.textContent = `
     .visualization-header {
@@ -111,7 +106,6 @@ export function createFilterDropdown(options) {
   select.id = id;
   select.className = "dashboard-select";
 
-  // Add options
   options.forEach(opt => {
     const option = document.createElement("option");
     option.value = opt.value;
@@ -119,22 +113,17 @@ export function createFilterDropdown(options) {
     select.appendChild(option);
   });
 
-  // Set default value
   select.value = defaultValue;
 
-  // Add change event listener
   if (stateKey) {
-    // Set initial state value
     if (defaultValue) {
       dashboardState.setState(stateKey, defaultValue);
     }
 
-    // Update state when select changes
     select.addEventListener("change", () => {
       dashboardState.setState(stateKey, select.value);
     });
     
-    // Update select when state changes
     dashboardState.subscribe(stateKey, value => {
       if (select.value !== value) {
         select.value = value || defaultValue;

@@ -487,12 +487,10 @@ export function applyGlobalFilters(data, options = {}) {
     return data.filter(item => {
       if (!item) return false;
       
-      // Location filter
       if (filters.location && item[locationKey] !== filters.location) {
         return false;
       }
       
-      // Time range filter
       if (filters.timeRange.start && filters.timeRange.end && item[timeKey]) {
         try {
           const itemTime = new Date(item[timeKey]);
@@ -509,17 +507,14 @@ export function applyGlobalFilters(data, options = {}) {
         }
       }
       
-      // Threshold filter
       if (filters.threshold !== null && filters.threshold > 0) {
         if (filters.metric && currentMetricKeys) {
-          // Check if any of the specified metric keys meet the threshold
           const meetsThreshold = currentMetricKeys.some(key => 
             item[key] !== undefined && !isNaN(item[key]) && item[key] >= filters.threshold
           );
           if (!meetsThreshold) return false;
         } 
         else {
-          // Calculate combined damage if no specific metric is selected
           let combinedDamage;
           const cacheKey = [
             item.sewer_and_water,

@@ -17,6 +17,7 @@ export default {
       name: "Temporal Analysis",
       pages: [
         {name: "Damage Animation", path: "/animation_graph"},
+        {name: "Variables Over Time", path: "/linegraph"},
         {name: "Boxplot Analysis", path: "/boxplot"}
       ]
     },

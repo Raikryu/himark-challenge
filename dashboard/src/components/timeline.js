@@ -16,7 +16,6 @@ export function createTimeline(options) {
     return null;
   }
   
-  // Create container if it doesn't exist
   let container = document.getElementById(containerId);
   if (!container) {
     container = document.createElement("div");
@@ -26,7 +25,6 @@ export function createTimeline(options) {
   
   container.className = "timeline-container";
   
-  // Create timeline HTML
   container.innerHTML = `
     <div class="timeline-controls">
       <button id="${containerId}-play-btn" class="dashboard-button timeline-btn">
@@ -42,7 +40,6 @@ export function createTimeline(options) {
     </div>
   `;
   
-  // Add styles
   const style = document.createElement("style");
   style.textContent = `
     .timeline-container {
@@ -143,39 +140,32 @@ export function createTimeline(options) {
   `;
   document.head.appendChild(style);
   
-  // Get DOM elements
   const playBtn = document.getElementById(`${containerId}-play-btn`);
   const pauseBtn = document.getElementById(`${containerId}-pause-btn`);
   const slider = document.getElementById(`${containerId}-slider`);
   const timeDisplay = document.getElementById(`${containerId}-time-display`);
   
-  // State
   let currentIndex = 0;
   let animationInterval = null;
   let isPlaying = false;
   
-  // Format and update the time display
   function updateTimeDisplay(timestamp) {
     const formattedDate = formatDate(timestamp, 'long');
     timeDisplay.textContent = formattedDate;
     
-    // Update state
     dashboardState.setState(stateKey, formattedDate);
     
-    // Call the onTimeChange callback
     if (typeof onTimeChange === 'function') {
       onTimeChange(timestamp, currentIndex);
     }
   }
   
-  // Update the visualization based on the current timestamp
   function updateTime(index) {
     currentIndex = index;
     slider.value = index;
     updateTimeDisplay(timestamps[index]);
   }
   
-  // Start the animation
   function play() {
     if (animationInterval) {
       clearInterval(animationInterval);
@@ -190,7 +180,6 @@ export function createTimeline(options) {
     }, frameRate);
   }
   
-  // Pause the animation
   function pause() {
     if (animationInterval) {
       clearInterval(animationInterval);
@@ -201,7 +190,6 @@ export function createTimeline(options) {
     dashboardState.setState(playStateKey, 'paused');
   }
   
-  // Set event listeners
   playBtn.addEventListener('click', play);
   pauseBtn.addEventListener('click', pause);
   
@@ -211,12 +199,9 @@ export function createTimeline(options) {
     updateTimeDisplay(timestamps[index]);
   });
   
-  // Initial update
   updateTime(0);
   
-  // Return control object
   return {
-    // Jump to a specific timestamp
     setTime: (timestamp) => {
       const index = timestamps.findIndex(t => t.getTime() === timestamp.getTime());
       if (index !== -1) {
@@ -224,20 +209,16 @@ export function createTimeline(options) {
       }
     },
     
-    // Jump to a specific index
     setIndex: (index) => {
       if (index >= 0 && index < timestamps.length) {
         updateTime(index);
       }
     },
     
-    // Start the animation
     play: () => play(),
     
-    // Pause the animation
     pause: () => pause(),
     
-    // Toggle between playing and paused states
     toggle: () => {
       if (isPlaying) {
         pause();
@@ -246,22 +227,17 @@ export function createTimeline(options) {
       }
     },
     
-    // Get the current timestamp
     getCurrentTime: () => timestamps[currentIndex],
     
-    // Get the current index
     getCurrentIndex: () => currentIndex,
     
-    // Check if animation is playing
     isPlaying: () => isPlaying,
     
-    // Cleanup resources
     destroy: () => {
       if (animationInterval) {
         clearInterval(animationInterval);
       }
       
-      // Remove event listeners
       playBtn.removeEventListener('click', play);
       pauseBtn.removeEventListener('click', pause);
       slider.removeEventListener('input', () => {});
@@ -282,7 +258,6 @@ export function createTimeSlider(options) {
     return null;
   }
   
-  // Create container if it doesn't exist
   let container = document.getElementById(containerId);
   if (!container) {
     container = document.createElement("div");
@@ -292,7 +267,6 @@ export function createTimeSlider(options) {
   
   container.className = "time-slider-container";
   
-  // Create time slider HTML
   container.innerHTML = `
     <div class="time-slider-wrapper">
       <span id="${containerId}-time-label" class="time-slider-label">Time:</span>
@@ -303,7 +277,6 @@ export function createTimeSlider(options) {
     </div>
   `;
   
-  // Add styles
   const style = document.createElement("style");
   style.textContent = `
     .time-slider-container {
@@ -360,40 +333,32 @@ export function createTimeSlider(options) {
   `;
   document.head.appendChild(style);
   
-  // Get DOM elements
   const slider = document.getElementById(`${containerId}-slider`);
   const timeDisplay = document.getElementById(`${containerId}-time-display`);
   
-  // State
   let currentIndex = 0;
   
-  // Format and update the time display
   function updateTimeDisplay(timestamp) {
     timeDisplay.textContent = formatDate(timestamp, displayFormat);
     
-    // Call the onTimeChange callback
     if (typeof onTimeChange === 'function') {
       onTimeChange(timestamp, currentIndex);
     }
   }
   
-  // Update based on the current timestamp
   function updateTime(index) {
     currentIndex = index;
     slider.value = index;
     updateTimeDisplay(timestamps[index]);
   }
   
-  // Set event listeners
   slider.addEventListener('input', () => {
     const index = parseInt(slider.value);
     updateTime(index);
   });
   
-  // Initial update
   updateTime(0);
   
-  // Return control object
   return {
     setTime: (timestamp) => {
       const index = timestamps.findIndex(t => t.getTime() === timestamp.getTime());
@@ -428,7 +393,6 @@ export function createTimeRange(options) {
     stateKey = "filters.timeRange"
   } = options;
   
-  // Create container if it doesn't exist
   let container = document.getElementById(containerId);
   if (!container) {
     container = document.createElement("div");
@@ -438,7 +402,6 @@ export function createTimeRange(options) {
   
   container.className = "time-range-container";
   
-  // Create time range HTML
   container.innerHTML = `
     <div class="time-range-header">
       <label class="time-range-label">Date Range Filter</label>
@@ -462,7 +425,6 @@ export function createTimeRange(options) {
     </div>
   `;
   
-  // Add styles
   const style = document.createElement("style");
   style.textContent = `
     .time-range-container {
@@ -532,52 +494,41 @@ export function createTimeRange(options) {
   `;
   document.head.appendChild(style);
   
-  // Get DOM elements
   const startInput = document.getElementById(`${containerId}-start`);
   const endInput = document.getElementById(`${containerId}-end`);
   const resetBtn = document.getElementById(`${containerId}-reset`);
   
-  // Update the date range and notify listeners
   function updateRange() {
     const start = new Date(startInput.value);
     const end = new Date(endInput.value);
     
-    // Ensure end date is not before start date
     if (end < start) {
       endInput.value = startInput.value;
       end.setTime(start.getTime());
     }
     
-    // Set both to midnight for consistent comparison
     start.setHours(0, 0, 0, 0);
-    // End date should be end of day
     end.setHours(23, 59, 59, 999);
     
-    // Update state
     dashboardState.setState(stateKey, { start, end });
     
-    // Call the onChange callback
     if (typeof onChange === 'function') {
       onChange({ start, end });
     }
   }
   
-  // Reset to full range
   function reset() {
     startInput.value = minDate.toISOString().split('T')[0];
     endInput.value = maxDate.toISOString().split('T')[0];
     updateRange();
   }
   
-  // Set event listeners
   startInput.addEventListener('change', updateRange);
   endInput.addEventListener('change', updateRange);
   resetBtn.addEventListener('click', reset);
   
-  // Initial update
   updateRange();
   
-  // Return control object
   return {
     getRange: () => {
       const start = new Date(startInput.value);
