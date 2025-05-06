@@ -46,8 +46,8 @@
       },
 
       {
-        "source": "/linemap",
-        "destination": "/linemap.html"
+        "source": "/linegraph",
+        "destination": "/linegraph.html"
       },
 
 
