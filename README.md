@@ -2,6 +2,10 @@
 
 An interactive data visualization dashboard for analyzing earthquake damage in the city of St. Himark.
 
+# Links
+- Live Dashboard - https://himark-challenge.vercel.app/
+- GitHub Repository - https://github.com/Raikryu/himark-challenge
+
 ## Group members
 - Amal Hassan - efyah8@nottingham.ac.uk
 - Ben Assor - psyba5@nottingham.ac.uk
