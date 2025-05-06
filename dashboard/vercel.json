@@ -46,6 +46,12 @@
       },
 
       {
+        "source": "/linemap",
+        "destination": "/linemap.html"
+      },
+
+
+      {
         "source": "/",
         "destination": "/index.html"
       }
