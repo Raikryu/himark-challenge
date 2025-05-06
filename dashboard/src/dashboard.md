@@ -37,11 +37,18 @@ This dashboard brings together multiple visualizations with shared filters and c
 ## Temporal Analysis
 
 <div class="dashboard-row">
-  <div class="dashboard-card full-width">
+  <div class="dashboard-card">
     <div class="dashboard-title">
       <i class="fas fa-film"></i> Damage Progression
     </div>
     <div id="mini-animation" class="mini-visualization"></div>
+  </div>
+  
+  <div class="dashboard-card">
+    <div class="dashboard-title">
+      <i class="fas fa-chart-line"></i> Variables Over Time
+    </div>
+    <div id="mini-linechart" class="mini-visualization"></div>
   </div>
 </div>
 
@@ -156,12 +163,18 @@ async function initDashboard() {
   initMiniHeatmap(geoData, radarData);
   initMiniRadarChart(radarData);
   initMiniAnimation(reportData);
+  if (typeof window.initMiniLineChart === 'function') {
+    window.initMiniLineChart();
+  }
   updateStatistics(radarData, reportData);
   
   dashboardState.subscribe('filters', () => {
     initMiniHeatmap(geoData, radarData);
     initMiniRadarChart(radarData);
     initMiniAnimation(reportData);
+    if (typeof window.initMiniLineChart === 'function') {
+      window.initMiniLineChart();
+    }
     updateStatistics(radarData, reportData);
   });
 }
