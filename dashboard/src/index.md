@@ -48,6 +48,11 @@ toc: false
       <h4>Damage Animation</h4>
       <p>Watch damage progression over time</p>
     </a>
+    <a href="/linegraph" class="nav-card">
+      <i class="fas fa-chart-line"></i>
+      <h4>Variables Over Time</h4>
+      <p>Track damage metrics across neighborhoods</p>
+    </a>
     <a href="/boxplot" class="nav-card">
       <i class="fas fa-chart-bar"></i>
       <h4>Boxplot Analysis</h4>
